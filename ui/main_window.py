@@ -1,8 +1,9 @@
-from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog
+from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout
 from PyQt6.QtGui import QAction
 import sys
-
+import numpy as np
 from ui.viewer_widget import ViewerWidget
+from dicom.dicom_reader import DicomReader
 
 
 class UIMainWindow(QMainWindow):
@@ -20,7 +21,7 @@ class UIMainWindow(QMainWindow):
 
     def create_central_widget(self):
         self.viewer_widget = ViewerWidget()
-        self.setCentralWidget(self.viewer_widget)
+        self.setCentralWidget((self.viewer_widget))
 
     def setupMenuBar(self):
         menu = self.menuBar()
@@ -75,6 +76,10 @@ class UIMainWindow(QMainWindow):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open DICOM File", "", "DICOM Files (*.dcm);;All Files (*)")
         if file_path:
             print(f"open: {file_path}")
+
+            pixel_array = DicomReader.read_dicom_file(file_path).pixel_array(np.float32)
+            print(pixel_array.shape)
+            self.viewer_widget.display_image(pixel_array)
 
     def save_as_func(self):
         print("Save as clicked")
