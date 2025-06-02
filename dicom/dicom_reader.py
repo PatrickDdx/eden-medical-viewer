@@ -1,9 +1,26 @@
 import pydicom
 import numpy as np
+import os
 
 class DicomReader():
     def __init__(self):
         pass
+
+
+    def read_dicom_series(self, folder_path):
+        files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(".dcm")]
+        datasets = [pydicom.dcmread(f) for f in files]
+        datasets.sort(key=lambda ds: float(ds.get("InstanceNumber", 0)))
+
+        slices = [ds.pixel_array.astype(np.float32) for ds in datasets]
+        volume = np.stack(slices, axis=0)  # shape: (num_slices, height, width)
+
+        window_center = int(datasets[0].get("WindowCenter", 40))
+        window_width = int(datasets[0].get("WindowWidth", 400))
+
+        print(f"center: {window_center}, width_ {window_width}")
+
+        return volume, window_center, window_width
 
     def read_dicom_file(self, file_path):
         """Reads dicom file and returns pydicom Dataset"""

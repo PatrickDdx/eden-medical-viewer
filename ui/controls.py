@@ -29,7 +29,7 @@ class DicomControls(QWidget):
     def __init__(self, canvas):
         super().__init__()
 
-        self.canvas = canvas
+        self.canvas = canvas #is the viewer Widget that should be controlled with the slider etc.
 
         # slider to change the current slice
         self.slider = SliceSlider()
@@ -54,10 +54,10 @@ class DicomControls(QWidget):
         self.setLayout(layout)
 
     def update_image_from_slider(self, value):
-        #self.canvas.update_image(value)   #########??????????
-        pass
+        self.canvas.update_image(value)   #########??????????
+
 
     def update_windowing(self):
         new_center = self.center_slider.value()
         new_width = self.width_slider.value()
-        #self.canvas.update_windowing(new_center, new_width) ############?????????????
+        self.canvas.update_windowing(new_center, new_width)

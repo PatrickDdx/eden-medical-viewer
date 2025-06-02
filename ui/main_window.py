@@ -106,13 +106,21 @@ class UIMainWindow(QMainWindow):
         if file_path:
             print(f"open: {file_path}")
 
-            ds = self.reader.read_dicom_file(file_path)
+            import os
+            folder = os.path.dirname(file_path)
 
-            pixel_data = self.reader.get_pixel_array(ds)
+            try:
+                volume, default_center, default_width = self.reader.read_dicom_series(folder)
 
-            print(pixel_data.shape)
+                self.viewer_widget.load_dicom_series(volume)
 
-            self.viewer_widget.display_image(pixel_data)
+                self.controls.slider.setMaximum(volume.shape[0] - 1)
+                self.controls.center_slider.setValue(default_center)
+                self.controls.width_slider.setValue(default_width)
+            except Exception as e:
+                print(f"Error loading dicom series:  {e}")
+
+
 
 
     def save_as_func(self):
