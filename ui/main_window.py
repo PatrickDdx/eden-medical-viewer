@@ -1,27 +1,41 @@
-from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout
+import pydicom.data
+from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget
 from PyQt6.QtGui import QAction
 import sys
 import numpy as np
 from ui.viewer_widget import ViewerWidget
 from dicom.dicom_reader import DicomReader
+from ui.controls import DicomControls
 
 
 class UIMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("EDEN")
+        self.setGeometry(110, 62, 800, 600)  # (Xpos, Ypos, width, height)
+        self.setMinimumSize(800, 600)
 
-        self.setupUI()
-        self.setupMenuBar()
-        self.create_central_widget() #Main display area
+        self.reader = DicomReader()
 
-    def setupUI(self):
-        self.setGeometry(110,62,1700,956) #(Xpos, Ypos, width, height)
-        self.setMinimumSize(800,600)
-
-    def create_central_widget(self):
         self.viewer_widget = ViewerWidget()
-        self.setCentralWidget((self.viewer_widget))
+        #self.setCentralWidget(self.viewer_widget)
+
+        self.controls = DicomControls(self.viewer_widget)
+
+        self.setup_central_layout()
+        self.setupMenuBar()
+
+    def setup_central_layout(self):
+        """Creates a central wieget with layout for viewer and controls"""
+        central_widget = QWidget()
+        layout = QVBoxLayout()
+
+        layout.addWidget(self.viewer_widget)
+        layout.addWidget(self.controls)
+
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
 
     def setupMenuBar(self):
         menu = self.menuBar()
@@ -70,6 +84,21 @@ class UIMainWindow(QMainWindow):
     def dummy_func(self):
         print("dummy function clicked")
 
+        test_data_path =  pydicom.data.get_testdata_file("CT_small.dcm")
+        print(f"file path: {test_data_path}")
+
+        #ds = pydicom.dcmread(test_data_path) # this works
+
+        ds = self.reader.read_dicom_file(test_data_path)
+
+        pixel_data = self.reader.get_pixel_array(ds)
+
+        print(pixel_data.shape)
+
+        self.viewer_widget.display_image(pixel_data)
+
+        print("end of dummy")
+
     #---------------------
     def open_dicom_file_func(self):
         print("open DICOM file clicked")
@@ -77,9 +106,14 @@ class UIMainWindow(QMainWindow):
         if file_path:
             print(f"open: {file_path}")
 
-            pixel_array = DicomReader.read_dicom_file(file_path).pixel_array(np.float32)
-            print(pixel_array.shape)
-            self.viewer_widget.display_image(pixel_array)
+            ds = self.reader.read_dicom_file(file_path)
+
+            pixel_data = self.reader.get_pixel_array(ds)
+
+            print(pixel_data.shape)
+
+            self.viewer_widget.display_image(pixel_data)
+
 
     def save_as_func(self):
         print("Save as clicked")

@@ -9,7 +9,7 @@ class DicomReader():
         """Reads dicom file and returns pydicom Dataset"""
         return pydicom.dcmread(file_path)
 
-    def get_metedata(self, data):
+    def get_metadata(self, data):
         """Extracts metadata from dicom data"""
         metadata = {
             "PatientName": str(getattr(data, 'PatientName', 'N/A')),
@@ -23,3 +23,10 @@ class DicomReader():
         }
 
         return metadata
+
+    def get_pixel_array(self, dicom_data):
+        """Reads dicom data and returns normalized pixel array"""
+        pixels = dicom_data.pixel_array.astype(np.float32)
+        pixels = 255 * (pixels - np.min(pixels)) / (np.ptp(pixels) + 1e-5)
+        pixels = pixels.astype(np.uint8)
+        return pixels
