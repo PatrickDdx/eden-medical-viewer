@@ -24,6 +24,21 @@ class ViewerWidget(QWidget):
         self.window_center = 0
         self.window_width = 0
 
+        self._mouse_pressed = False
+        self._last_mouse_pos = None
+        self._start_window_center = 0
+        self._start_window_width = 0
+
+        self.slice_slider = None
+        self.center_slider = None
+        self.width_slider = None
+
+        self.window_presets = {
+            Qt.Key.Key_1: {"name": "Brain", "center": 40, "width": 80},
+            Qt.Key.Key_2: {"name": "Lung", "center": -600, "width": 1500},
+            Qt.Key.Key_3: {"name": "Bone", "center": 300, "width": 1500},
+        }
+
     def resizeEvent(self, event):
         if hasattr(self, "current_pixmap") and self.current_pixmap:
             scaled_pixmap = self.current_pixmap.scaled(
@@ -68,11 +83,28 @@ class ViewerWidget(QWidget):
         processed = self.apply_windowing(slice_data)
         self.display_image(processed)
 
+        if hasattr(self, 'slice_slider') and self.slice_slider: #syncs the slider with the current slice if it was changed with the mouse wheel
+            if self.slice_slider.value() != slice_index:
+                self.slice_slider.blockSignals(True)
+                self.slice_slider.setValue(slice_index)
+                self.slice_slider.blockSignals(False)
+
     def update_windowing(self, center: int, width: int):
         """Update the windowing"""
         self.window_center = center
         self.window_width = width
         self.update_image(self.current_slice_index)
+
+        # Sync sliders
+        if hasattr(self, 'center_slider') and self.center_slider is not None:
+            self.center_slider.blockSignals(True)
+            self.center_slider.setValue(center)
+            self.center_slider.blockSignals(False)
+
+        if hasattr(self, 'width_slider') and self.width_slider is not None:
+            self.width_slider.blockSignals(True)
+            self.width_slider.setValue(width)
+            self.width_slider.blockSignals(False)
 
     def apply_windowing(self, img: np.ndarray) -> np.ndarray:
         lower_bound = self.window_center - (self.window_width / 2)
@@ -90,3 +122,53 @@ class ViewerWidget(QWidget):
 
         return img_8bit
 
+    def wheelEvent(self, event):
+        if self.dicom_slices is None:
+            return
+
+        number_of_slices = self.dicom_slices.shape[0]
+        delta = event.angleDelta().y() # Positive = scroll up, negative = scroll down
+
+        if delta > 0 and self.current_slice_index < number_of_slices -1:
+            self.current_slice_index += 1
+        elif delta < 0 and self.current_slice_index > 0:
+            self.current_slice_index -= 1
+
+        self.update_image(self.current_slice_index)
+
+    def set_slider(self, slider, center_slider = None, width_slider = None):
+        self.slice_slider = slider
+        self.center_slider = center_slider
+        self.width_slider  = width_slider
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.RightButton:
+            self._mouse_pressed = True
+            self._last_mouse_pos = event.position()
+            self._start_window_center = self.window_center
+            self._start_window_width = self.window_width
+
+    def mouseMoveEvent(self, event):
+        if self._mouse_pressed:
+            delta = event.position() - self._last_mouse_pos
+            dx = delta.x()
+            dy = delta.y()
+
+            new_center = self._start_window_center + int(dy)
+            new_width = self._start_window_width + int(dx)
+
+            new_width = max(1, new_width) #to avoid division by zero
+
+            self.update_windowing(new_center, new_width)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.RightButton:
+            self._mouse_pressed = False
+            self._last_mouse_pos = None
+
+    def keyPressEvent(self, event):  ##########doesnt work!!!!!
+        key = event.key()
+        print(f"key pressed: {key}")  #shows nothing
+        if key in self.window_presets:
+            preset = self.window_presets[key]
+            self.update_windowing(preset["center"], preset["width"])

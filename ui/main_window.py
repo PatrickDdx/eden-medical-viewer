@@ -21,6 +21,10 @@ class UIMainWindow(QMainWindow):
         #self.setCentralWidget(self.viewer_widget)
 
         self.controls = DicomControls(self.viewer_widget)
+        self.viewer_widget.set_slider(self.controls.slider,
+                                      center_slider=self.controls.center_slider,
+                                      width_slider=self.controls.width_slider
+                                      )
 
         self.setup_central_layout()
         self.setupMenuBar()
