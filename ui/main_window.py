@@ -48,9 +48,9 @@ class UIMainWindow(QMainWindow):
         #creatin a menu dummy:
         dummy_menu = menu.addMenu("dummy")
 
-        dummy_action = QAction("dummy action", self)
-        dummy_action.triggered.connect(self.dummy_func)
-        dummy_menu.addAction(dummy_action)
+        test_data = QAction("dummy action", self)
+        test_data.triggered.connect(self.dummy_func)
+        dummy_menu.addAction(test_data)
 
         #----------------------------
 
@@ -71,6 +71,20 @@ class UIMainWindow(QMainWindow):
 
         exit_action = QAction("Exit", self)
         file_menu.addAction(exit_action)
+
+        #loda test data
+        test_data_menu = menu.addMenu("Test Data")
+
+        load_CT = QAction("CT", self)
+        load_CT.triggered.connect(lambda: self.load_test_data("CT"))
+        test_data_menu.addAction(load_CT)
+
+        load_MRI = QAction("MRI", self)
+        load_MRI.triggered.connect(lambda: self.load_test_data("MRI"))
+        test_data_menu.addAction(load_MRI)
+
+
+
 
         #V View Menu
         view_menu = menu.addMenu("View")
@@ -107,6 +121,7 @@ class UIMainWindow(QMainWindow):
     def open_dicom_file_func(self):
         print("open DICOM file clicked")
         file_path, _ = QFileDialog.getOpenFileName(self, "Open DICOM File", "", "DICOM Files (*.dcm);;All Files (*)")
+        print(file_path)
         if file_path:
             print(f"open: {file_path}")
 
@@ -134,3 +149,27 @@ class UIMainWindow(QMainWindow):
         model_path, _ = QFileDialog.getOpenFileName(self, "Load AI Model", "", "Model Files (*.h5 *pth *pkl *onnx *pb *tflite *keras *joblib *pmml);;All Files (*)")
         if model_path:
             print(f"loading following model: {model_path}")
+
+    def load_test_data(self, modality):
+        print("loading test data")
+
+        if modality == "CT":
+            file_path = "C:/Users/patri/GIT/dicomViewer/assets/CT/series-000001/image-000003.dcm"
+        elif modality == "MRI":
+            file_path = "C:/Users/patri/GIT/dicomViewer/assets/MRI/Example_MRI_1/image-00001.dcm"
+        else:
+            return
+
+        import os
+        folder = os.path.dirname(file_path)
+
+        try:
+            volume, default_center, default_width = self.reader.read_dicom_series(folder)
+
+            self.viewer_widget.load_dicom_series(volume)
+
+            self.controls.slider.setMaximum(volume.shape[0] - 1)
+            self.controls.center_slider.setValue(default_center)
+            self.controls.width_slider.setValue(default_width)
+        except Exception as e:
+            print(f"Error loading dicom series:  {e}")

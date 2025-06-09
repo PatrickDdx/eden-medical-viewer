@@ -15,8 +15,16 @@ class DicomReader():
         slices = [ds.pixel_array.astype(np.float32) for ds in datasets]
         volume = np.stack(slices, axis=0)  # shape: (num_slices, height, width)
 
-        window_center = int(datasets[0].get("WindowCenter", 40))
-        window_width = int(datasets[0].get("WindowWidth", 400))
+        def extract_first(value, default):
+            if isinstance(value, pydicom.multival.MultiValue):
+                return int(value[0])
+            try:
+                return int(value)
+            except Exception:
+                return default
+
+        window_center = extract_first(datasets[0].get("WindowCenter", 40), 40)
+        window_width = extract_first(datasets[0].get("WindowWidth", 400), 400)
 
         print(f"center: {window_center}, width_ {window_width}")
 
