@@ -46,14 +46,15 @@ class UIMainWindow(QMainWindow):
 
         #---------------------------------
         #creatin a menu dummy:
+        """
         dummy_menu = menu.addMenu("dummy")
 
         test_data = QAction("dummy action", self)
         test_data.triggered.connect(self.dummy_func)
-        dummy_menu.addAction(test_data)
+        dummy_menu.addAction(test_data) 
+        """
 
         #----------------------------
-
 
         # File Menu
         file_menu = menu.addMenu("File")
@@ -83,11 +84,18 @@ class UIMainWindow(QMainWindow):
         load_MRI.triggered.connect(lambda: self.load_test_data("MRI"))
         test_data_menu.addAction(load_MRI)
 
+        #Windowing menu
+        window_presets_menu = menu.addMenu("Windowing")
 
+        for name in self.viewer_widget.window_presets:
+            action = QAction(name, self)
 
+            action.triggered.connect(lambda checked, n=name: self.viewer_widget.apply_window_preset(n))
+            window_presets_menu.addAction(action)
 
-        #V View Menu
-        view_menu = menu.addMenu("View")
+        current_window = QAction("Current Window", self)
+        current_window.triggered.connect(self.viewer_widget.get_current_window)
+        window_presets_menu.addAction(current_window)
 
         # AI Menu
         ai_menu = menu.addMenu("AI")
@@ -132,6 +140,7 @@ class UIMainWindow(QMainWindow):
                 volume, default_center, default_width = self.reader.read_dicom_series(folder)
 
                 self.viewer_widget.load_dicom_series(volume)
+                self.viewer_widget.update_windowing(default_center, default_width)
 
                 self.controls.slider.setMaximum(volume.shape[0] - 1)
                 self.controls.center_slider.setValue(default_center)
@@ -167,6 +176,7 @@ class UIMainWindow(QMainWindow):
             volume, default_center, default_width = self.reader.read_dicom_series(folder)
 
             self.viewer_widget.load_dicom_series(volume)
+            self.viewer_widget.update_windowing(default_center, default_width)
 
             self.controls.slider.setMaximum(volume.shape[0] - 1)
             self.controls.center_slider.setValue(default_center)

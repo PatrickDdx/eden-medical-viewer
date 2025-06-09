@@ -12,7 +12,16 @@ class DicomReader():
         datasets = [pydicom.dcmread(f) for f in files]
         datasets.sort(key=lambda ds: float(ds.get("InstanceNumber", 0)))
 
-        slices = [ds.pixel_array.astype(np.float32) for ds in datasets]
+        #slices = [ds.pixel_array.astype(np.float32) for ds in datasets]
+        slices = []
+        for ds in datasets:
+            img = ds.pixel_array.astype(np.float32)
+            if hasattr(ds, 'RescaleSlope') or hasattr(ds, 'RescaleIntercept'):
+                slope = float(getattr(ds, 'RescaleSlope', 1.0))
+                intercept = float(getattr(ds, 'RescaleIntercept', 0.0))
+                img = img * slope + intercept
+            slices.append(img)
+
         volume = np.stack(slices, axis=0)  # shape: (num_slices, height, width)
 
         def extract_first(value, default):

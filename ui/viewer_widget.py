@@ -6,6 +6,10 @@ import numpy as np
 class ViewerWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # set focus so key events get detected
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
         self.image_label = QLabel()
 
         self.image_label.setScaledContents(False)  # Let you control the scaling manually
@@ -33,10 +37,40 @@ class ViewerWidget(QWidget):
         self.center_slider = None
         self.width_slider = None
 
+#        self.window_presets = {
+ #           Qt.Key.Key_1: {"name": "Brain", "center": 40, "width": 80},
+  #          Qt.Key.Key_2: {"name": "Lung", "center": -600, "width": 1500},
+   #         Qt.Key.Key_3: {"name": "Bone", "center": 300, "width": 1500},
+#
+ #       }
+
         self.window_presets = {
-            Qt.Key.Key_1: {"name": "Brain", "center": 40, "width": 80},
-            Qt.Key.Key_2: {"name": "Lung", "center": -600, "width": 1500},
-            Qt.Key.Key_3: {"name": "Bone", "center": 300, "width": 1500},
+            #head and neck
+            "brain": {"width": 80, "level": 40},
+            "subdural": {"width": 130, "level": 50},
+            "stroke": {"width": 8, "level": 32},
+            "temporal bones": {"width": 2800, "level": 600},
+            #"soft tissues": {"width": 350, "level": 20},
+
+            #chest
+            "lungs": {"width": 1500, "level": -600},
+            "mediastinum": {"width": 350, "level": 50},
+            "vascular/heart": {"width": 600, "level": 200},
+
+            #abdomen
+            "soft tissues": {"width": 400, "level": 50},
+            "liver": {"width": 150, "level": 30},
+
+            #spine
+            #"soft tissues": {"width": 250, "level": 50},
+            "bone": {"width": 1800, "level": 400},
+
+        }
+
+        self.window_keys = {
+            Qt.Key.Key_1: "brain",
+            Qt.Key.Key_2: "lungs",
+            Qt.Key.Key_3: "soft tissues"
         }
 
     def resizeEvent(self, event):
@@ -53,7 +87,7 @@ class ViewerWidget(QWidget):
         """Takes a 3D NumPy array and sets up the viewer."""
         self.dicom_slices = volume_data
         self.current_slice_index = 0
-        self.update_image(self.current_slice_index)
+        #self.update_image(self.current_slice_index)
 
     def display_image(self, image_data_2d):
         """receives 2D array of type np.uint8 and displays it"""
@@ -122,6 +156,15 @@ class ViewerWidget(QWidget):
 
         return img_8bit
 
+    def apply_window_preset(self, name: str):
+        preset = self.window_presets.get(name)
+        print(f"presets: {preset}")
+        if preset:
+            self.update_windowing(preset["level"], preset["width"])
+
+    def get_current_window(self):
+        print(f"width: {self.window_width}, level: {self.window_center}")
+
     def wheelEvent(self, event):
         if self.dicom_slices is None:
             return
@@ -129,10 +172,16 @@ class ViewerWidget(QWidget):
         number_of_slices = self.dicom_slices.shape[0]
         delta = event.angleDelta().y() # Positive = scroll up, negative = scroll down
 
-        if delta > 0 and self.current_slice_index < number_of_slices -1:
-            self.current_slice_index += 1
-        elif delta < 0 and self.current_slice_index > 0:
-            self.current_slice_index -= 1
+        # Default step = 1, with Ctrl = 5 slices
+        # Qt6 modifiers: use Qt.KeyboardModifier.ControlModifier
+        modifiers = event.modifiers()
+        step = 5 if modifiers == Qt.KeyboardModifier.ControlModifier or \
+                    modifiers & Qt.KeyboardModifier.ControlModifier else 1
+
+        if delta > 0:
+            self.current_slice_index = min(self.current_slice_index + step, number_of_slices - 1)
+        elif delta < 0:
+            self.current_slice_index = max(self.current_slice_index - step, 0)
 
         self.update_image(self.current_slice_index)
 
@@ -166,9 +215,11 @@ class ViewerWidget(QWidget):
             self._mouse_pressed = False
             self._last_mouse_pos = None
 
-    def keyPressEvent(self, event):  ##########doesnt work!!!!!
+    def keyPressEvent(self, event):
         key = event.key()
-        print(f"key pressed: {key}")  #shows nothing
-        if key in self.window_presets:
-            preset = self.window_presets[key]
-            self.update_windowing(preset["center"], preset["width"])
+        print(f"key pressed: {key}")
+        name = self.window_keys.get(key)
+        print(f"name {name}")
+        if name:
+            self.apply_window_preset(name)
+
