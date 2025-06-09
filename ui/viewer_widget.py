@@ -70,7 +70,8 @@ class ViewerWidget(QWidget):
         self.window_keys = {
             Qt.Key.Key_1: "brain",
             Qt.Key.Key_2: "lungs",
-            Qt.Key.Key_3: "soft tissues"
+            Qt.Key.Key_3: "soft tissues",
+            Qt.Key.Key_4: "bone"
         }
 
     def resizeEvent(self, event):
@@ -217,9 +218,9 @@ class ViewerWidget(QWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
-        print(f"key pressed: {key}")
+        #print(f"key pressed: {key}")
         name = self.window_keys.get(key)
-        print(f"name {name}")
+        #print(f"name {name}")
         if name:
             self.apply_window_preset(name)
 

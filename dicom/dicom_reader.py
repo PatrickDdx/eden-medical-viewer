@@ -35,8 +35,6 @@ class DicomReader():
         window_center = extract_first(datasets[0].get("WindowCenter", 40), 40)
         window_width = extract_first(datasets[0].get("WindowWidth", 400), 400)
 
-        print(f"center: {window_center}, width_ {window_width}")
-
         return volume, window_center, window_width
 
     def read_dicom_file(self, file_path):
