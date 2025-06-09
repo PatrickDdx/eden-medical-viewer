@@ -173,7 +173,8 @@ class UIMainWindow(QMainWindow):
         folder = os.path.dirname(file_path)
 
         try:
-            volume, default_center, default_width = self.reader.read_dicom_series(folder)
+            volume, default_center, default_width, meta = self.reader.read_dicom_series(folder)
+            print(meta)
 
             self.viewer_widget.load_dicom_series(volume)
             self.viewer_widget.update_windowing(default_center, default_width)

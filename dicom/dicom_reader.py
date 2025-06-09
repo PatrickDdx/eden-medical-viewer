@@ -35,7 +35,9 @@ class DicomReader():
         window_center = extract_first(datasets[0].get("WindowCenter", 40), 40)
         window_width = extract_first(datasets[0].get("WindowWidth", 400), 400)
 
-        return volume, window_center, window_width
+        metadata = self.get_metadata(datasets[0])
+
+        return volume, window_center, window_width, metadata
 
     def read_dicom_file(self, file_path):
         """Reads dicom file and returns pydicom Dataset"""
