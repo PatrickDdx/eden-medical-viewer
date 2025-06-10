@@ -1,8 +1,13 @@
+from importlib.metadata import metadata
+
 import pydicom.data
-from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget, QDockWidget
 from PyQt6.QtGui import QAction
 import sys
 import numpy as np
+
+from ui.metadata_widget import DicomMetadataViewer
 from ui.viewer_widget import ViewerWidget
 from dicom.dicom_reader import DicomReader
 from ui.controls import DicomControls
@@ -28,6 +33,13 @@ class UIMainWindow(QMainWindow):
 
         self.setup_central_layout()
         self.setupMenuBar()
+
+        self.metadata_viewer = DicomMetadataViewer()
+        self.metadata_dock = QDockWidget("DICOM Metadata", self)
+        self.metadata_dock.setWidget(self.metadata_viewer)
+        self.metadata_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.metadata_dock)
+
 
     def setup_central_layout(self):
         """Creates a central wieget with layout for viewer and controls"""
@@ -137,10 +149,12 @@ class UIMainWindow(QMainWindow):
             folder = os.path.dirname(file_path)
 
             try:
-                volume, default_center, default_width = self.reader.read_dicom_series(folder)
+                volume, default_center, default_width, metadata_dict = self.reader.read_dicom_series(folder)
 
-                self.viewer_widget.load_dicom_series(volume)
-                self.viewer_widget.update_windowing(default_center, default_width)
+                self.viewer_widget.load_dicom_series(volume)  # load dicom series
+                self.viewer_widget.update_windowing(default_center, default_width)  # apply initial windowing
+
+                self.metadata_viewer.display_metadata(metadata_dict)  # show the metadata
 
                 self.controls.slider.setMaximum(volume.shape[0] - 1)
                 self.controls.center_slider.setValue(default_center)
@@ -173,11 +187,12 @@ class UIMainWindow(QMainWindow):
         folder = os.path.dirname(file_path)
 
         try:
-            volume, default_center, default_width, meta = self.reader.read_dicom_series(folder)
-            print(meta)
+            volume, default_center, default_width, metadata_dict = self.reader.read_dicom_series(folder)
 
-            self.viewer_widget.load_dicom_series(volume)
-            self.viewer_widget.update_windowing(default_center, default_width)
+            self.viewer_widget.load_dicom_series(volume) #load dicom series
+            self.viewer_widget.update_windowing(default_center, default_width) #apply initial windowing
+
+            self.metadata_viewer.display_metadata(metadata_dict) #show the metadata
 
             self.controls.slider.setMaximum(volume.shape[0] - 1)
             self.controls.center_slider.setValue(default_center)
