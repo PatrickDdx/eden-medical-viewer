@@ -75,14 +75,15 @@ class UIMainWindow(QMainWindow):
         open_action.triggered.connect(self.open_dicom_file_func)
         file_menu.addAction(open_action)
 
-        save_action = QAction("Save", self)
-        file_menu.addAction(save_action)
+        #save_action = QAction("Save", self)
+        #file_menu.addAction(save_action)
 
-        save_as_action = QAction("Save As", self)
-        save_as_action.triggered.connect(self.save_as_func)
+        save_as_action = QAction("Save As Image", self)
+        save_as_action.triggered.connect(self.save_current_slice_as_image)
         file_menu.addAction(save_as_action)
 
         exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.exit)
         file_menu.addAction(exit_action)
 
         #loda test data
@@ -165,8 +166,14 @@ class UIMainWindow(QMainWindow):
 
 
 
-    def save_as_func(self):
+    def save_current_slice_as_image(self):
         print("Save as clicked")
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", "", "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (.bmp);;All Files (*)")
+
+        if file_path:
+            self.viewer_widget.save_current_slice(file_path)
+        else:
+            print("Save cancelled")
 
     def load_ai_model(self):
         model_path, _ = QFileDialog.getOpenFileName(self, "Load AI Model", "", "Model Files (*.h5 *pth *pkl *onnx *pb *tflite *keras *joblib *pmml);;All Files (*)")
@@ -199,3 +206,6 @@ class UIMainWindow(QMainWindow):
             self.controls.width_slider.setValue(default_width)
         except Exception as e:
             print(f"Error loading dicom series:  {e}")
+
+    def exit(self):
+        self.close()

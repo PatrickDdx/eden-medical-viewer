@@ -37,13 +37,6 @@ class ViewerWidget(QWidget):
         self.center_slider = None
         self.width_slider = None
 
-#        self.window_presets = {
- #           Qt.Key.Key_1: {"name": "Brain", "center": 40, "width": 80},
-  #          Qt.Key.Key_2: {"name": "Lung", "center": -600, "width": 1500},
-   #         Qt.Key.Key_3: {"name": "Bone", "center": 300, "width": 1500},
-#
- #       }
-
         self.window_presets = {
             #head and neck
             "brain": {"width": 80, "level": 40},
@@ -171,12 +164,15 @@ class ViewerWidget(QWidget):
             return
 
         number_of_slices = self.dicom_slices.shape[0]
+
+        step_amount = int(number_of_slices * 0.10) #10% of the slices when fast scrolling
+
         delta = event.angleDelta().y() # Positive = scroll up, negative = scroll down
 
         # Default step = 1, with Ctrl = 5 slices
         # Qt6 modifiers: use Qt.KeyboardModifier.ControlModifier
         modifiers = event.modifiers()
-        step = 5 if modifiers == Qt.KeyboardModifier.ControlModifier or \
+        step = step_amount if modifiers == Qt.KeyboardModifier.ControlModifier or \
                     modifiers & Qt.KeyboardModifier.ControlModifier else 1
 
         if delta > 0:
@@ -223,4 +219,16 @@ class ViewerWidget(QWidget):
         #print(f"name {name}")
         if name:
             self.apply_window_preset(name)
+
+
+    def save_current_slice(self, filepath: str):
+        """Saves the current pixmap (from image_display) to a file
+         :param filepath: Full file path including extension (e.g., 'output.png' or 'output.jpg')
+         """
+        if self.current_pixmap is not None:
+            success = self.current_pixmap.save(filepath)
+            if not success:
+                print(f"Failed to save image to {filepath}")
+            else:
+                print(f"Image saved to {filepath}")
 
