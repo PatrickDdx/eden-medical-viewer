@@ -1,16 +1,17 @@
-from importlib.metadata import metadata
-
 import pydicom.data
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget, QDockWidget
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
+from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget, QDockWidget, QProgressDialog, QMessageBox, QLabel
 from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QMovie
 import sys
 import numpy as np
+import os
 
 from ui.metadata_widget import DicomMetadataViewer
 from ui.viewer_widget import ViewerWidget
 from dicom.dicom_reader import DicomReader
 from ui.controls import DicomControls
+from dicom.dicom_loader import DicomLoader
 
 
 class UIMainWindow(QMainWindow):
@@ -184,6 +185,23 @@ class UIMainWindow(QMainWindow):
     def exit(self):
         self.close()
 
+    def on_dicom_loaded(self, volume, center, width, metadata_dict):
+        print("on dicom loaded")
+        self.progress.close()
+
+        self.viewer_widget.load_dicom_series(volume)  # load dicom series
+        self.viewer_widget.update_windowing(center, width)  # apply initial windowing
+
+        self.metadata_viewer.display_metadata(metadata_dict)  # show the metadata
+
+        self.controls.slider.setMaximum(volume.shape[0] - 1)
+        self.controls.center_slider.setValue(center)
+        self.controls.width_slider.setValue(width)
+
+    def on_dicom_error(self, message):
+        print("on dicom error")
+        self.progress.close()
+        print(f"Error loading DICOM: {message}")
 
 ##########################for prototyping/testing ############### delete when publishing
     def load_test_data(self, modality):
@@ -199,17 +217,101 @@ class UIMainWindow(QMainWindow):
         import os
         folder = os.path.dirname(file_path)
 
-        try:
-            volume, default_center, default_width, metadata_dict = self.reader.read_dicom_series(folder)
+        # --- 1. Set up and show the loading animation ---
+        self.loading_dialog = QWidget(self,
+                                      Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)  # Make it stay on top, no frame
+        self.loading_dialog.setWindowTitle("Loading DICOM...")
+        self.loading_dialog.setLayout(QVBoxLayout())
+        self.loading_dialog.setFixedSize(200, 200)  # Adjust size as needed
+        self.loading_dialog.setStyleSheet(
+            "background-color: rgba(0, 0, 0, 150); border-radius: 10px;")  # Semi-transparent dark background
 
-            self.viewer_widget.load_dicom_series(volume) #load dicom series
-            self.viewer_widget.update_windowing(default_center, default_width) #apply initial windowing
+        self.animation_label = QLabel(self.loading_dialog)
+        # IMPORTANT: Replace 'path/to/your/loading_animation.gif' with the actual path to your GIF
+        # Ensure the GIF file exists and the path is correct.
+        self.movie = QMovie("C:/Users/patri/GIT/dicomViewer/assets/animations/try_1.gif")
+        if self.movie.isValid():
+            self.animation_label.setMovie(self.movie)
+            self.animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.movie.start()
+        else:
+            print("Warning: Loading GIF not found or invalid. Showing text instead.")
+            self.animation_label.setText("Loading...")
+            self.animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.animation_label.setStyleSheet("color: white;")  # Make text visible on dark background
 
-            self.metadata_viewer.display_metadata(metadata_dict) #show the metadata
+        self.loading_text_label = QLabel("Loading DICOM files, please wait...", self.loading_dialog)
+        self.loading_text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loading_text_label.setStyleSheet("color: white;")  # Make text visible on dark background
 
-            self.controls.slider.setMaximum(volume.shape[0] - 1)
-            self.controls.center_slider.setValue(default_center)
-            self.controls.width_slider.setValue(default_width)
-        except Exception as e:
-            print(f"Error loading dicom series:  {e}")
+        self.loading_dialog.layout().addWidget(self.animation_label)
+        self.loading_dialog.layout().addWidget(self.loading_text_label)
+        self.loading_dialog.show()
+        self.loading_dialog.adjustSize()
+
+        # Optional: Disable main window interaction while loading
+        self.setEnabled(False)
+
+        # --- 2. Create QThread and DicomLoader instances ---
+        self.dicom_thread = QThread()  # Create a new thread
+        self.dicom_loader = DicomLoader(folder, self.reader)  # Your existing loader instance
+
+        # --- 3. Move the DicomLoader to the new thread ---
+        self.dicom_loader.moveToThread(self.dicom_thread)
+
+        # --- 4. Connect signals and slots ---
+        # When the thread starts, call the loader's run method
+        self.dicom_thread.started.connect(self.dicom_loader.run)
+        # When the loader finishes, connect to our UI update slot
+        self.dicom_loader.finished.connect(self._on_dicom_loading_finished)
+        # When an error occurs, connect to our error handling slot
+        self.dicom_loader.error.connect(self._on_dicom_loading_error)
+        # When the loader finishes or errors, quit and delete the thread
+        self.dicom_loader.finished.connect(self.dicom_thread.quit)
+        self.dicom_loader.error.connect(self.dicom_thread.quit)
+        # Optional: Clean up the worker and thread objects when the thread finishes
+        self.dicom_thread.finished.connect(self.dicom_loader.deleteLater)
+        self.dicom_thread.finished.connect(self.dicom_thread.deleteLater)
+
+        # --- 5. Start the thread ---
+        self.dicom_thread.start()
+
+        # --- Slots for handling thread results (within YourMainViewerClass) ---
+
+    def _on_dicom_loading_finished(self, volume, default_center, default_width, metadata_dict):
+        print("DICOM loading finished (UI thread)")
+        # Hide and clean up the loading animation
+        if hasattr(self, 'loading_dialog') and self.loading_dialog.isVisible():
+            self.movie.stop()
+            self.loading_dialog.close()
+            # Clean up references to allow garbage collection
+            del self.loading_dialog
+            self.loading_dialog = None  # Important to set to None after deletion
+
+        # Re-enable main window interaction
+        self.setEnabled(True)
+
+        # Update your UI with the loaded data
+        self.viewer_widget.load_dicom_series(volume)
+        self.viewer_widget.update_windowing(default_center, default_width)
+        self.metadata_viewer.display_metadata(metadata_dict)
+        self.controls.slider.setMaximum(volume.shape[0] - 1)
+        self.controls.center_slider.setValue(default_center)
+        self.controls.width_slider.setValue(default_width)
+
+    def _on_dicom_loading_error(self, error_message):
+        print(f"DICOM loading error (UI thread): {error_message}")
+        # Hide and clean up the loading animation
+        if hasattr(self, 'loading_dialog') and self.loading_dialog.isVisible():
+            self.movie.stop()
+            self.loading_dialog.close()
+            del self.loading_dialog
+            self.loading_dialog = None
+
+        # Re-enable main window interaction
+        self.setEnabled(True)
+
+        # Show an error message to the user
+        QMessageBox.critical(self, "Loading Error", f"Failed to load DICOM series:\n{error_message}")
+
 
