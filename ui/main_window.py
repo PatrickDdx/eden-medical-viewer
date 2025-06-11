@@ -86,17 +86,6 @@ class UIMainWindow(QMainWindow):
         exit_action.triggered.connect(self.exit)
         file_menu.addAction(exit_action)
 
-        #loda test data
-        test_data_menu = menu.addMenu("Test Data")
-
-        load_CT = QAction("CT", self)
-        load_CT.triggered.connect(lambda: self.load_test_data("CT"))
-        test_data_menu.addAction(load_CT)
-
-        load_MRI = QAction("MRI", self)
-        load_MRI.triggered.connect(lambda: self.load_test_data("MRI"))
-        test_data_menu.addAction(load_MRI)
-
         #Windowing menu
         window_presets_menu = menu.addMenu("Windowing")
 
@@ -118,6 +107,18 @@ class UIMainWindow(QMainWindow):
         ai_menu.addAction(load_action)
 
         help_menu = menu.addMenu("Help")
+
+##################section for testing and prototyping for convenience ##########delete when publishing
+        # loda test data
+        test_data_menu = menu.addMenu("Test Data")
+
+        load_CT = QAction("CT", self)
+        load_CT.triggered.connect(lambda: self.load_test_data("CT"))
+        test_data_menu.addAction(load_CT)
+
+        load_MRI = QAction("MRI", self)
+        load_MRI.triggered.connect(lambda: self.load_test_data("MRI"))
+        test_data_menu.addAction(load_MRI)
 
     #-------------- Events -----------------------
     def dummy_func(self):
@@ -180,6 +181,11 @@ class UIMainWindow(QMainWindow):
         if model_path:
             print(f"loading following model: {model_path}")
 
+    def exit(self):
+        self.close()
+
+
+##########################for prototyping/testing ############### delete when publishing
     def load_test_data(self, modality):
         print("loading test data")
 
@@ -207,5 +213,3 @@ class UIMainWindow(QMainWindow):
         except Exception as e:
             print(f"Error loading dicom series:  {e}")
 
-    def exit(self):
-        self.close()
