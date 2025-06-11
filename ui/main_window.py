@@ -165,9 +165,6 @@ class UIMainWindow(QMainWindow):
             except Exception as e:
                 print(f"Error loading dicom series:  {e}")
 
-
-
-
     def save_current_slice_as_image(self):
         print("Save as clicked")
         file_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", "", "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (.bmp);;All Files (*)")
@@ -185,24 +182,6 @@ class UIMainWindow(QMainWindow):
     def exit(self):
         self.close()
 
-    def on_dicom_loaded(self, volume, center, width, metadata_dict):
-        print("on dicom loaded")
-        self.progress.close()
-
-        self.viewer_widget.load_dicom_series(volume)  # load dicom series
-        self.viewer_widget.update_windowing(center, width)  # apply initial windowing
-
-        self.metadata_viewer.display_metadata(metadata_dict)  # show the metadata
-
-        self.controls.slider.setMaximum(volume.shape[0] - 1)
-        self.controls.center_slider.setValue(center)
-        self.controls.width_slider.setValue(width)
-
-    def on_dicom_error(self, message):
-        print("on dicom error")
-        self.progress.close()
-        print(f"Error loading DICOM: {message}")
-
 ##########################for prototyping/testing ############### delete when publishing
     def load_test_data(self, modality):
         print("loading test data")
@@ -217,40 +196,7 @@ class UIMainWindow(QMainWindow):
         import os
         folder = os.path.dirname(file_path)
 
-        # --- 1. Set up and show the loading animation ---
-        self.loading_dialog = QWidget(self,
-                                      Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)  # Make it stay on top, no frame
-        self.loading_dialog.setWindowTitle("Loading DICOM...")
-        self.loading_dialog.setLayout(QVBoxLayout())
-        self.loading_dialog.setFixedSize(200, 200)  # Adjust size as needed
-        self.loading_dialog.setStyleSheet(
-            "background-color: rgba(0, 0, 0, 150); border-radius: 10px;")  # Semi-transparent dark background
-
-        self.animation_label = QLabel(self.loading_dialog)
-        # IMPORTANT: Replace 'path/to/your/loading_animation.gif' with the actual path to your GIF
-        # Ensure the GIF file exists and the path is correct.
-        self.movie = QMovie("C:/Users/patri/GIT/dicomViewer/assets/animations/try_1.gif")
-        if self.movie.isValid():
-            self.animation_label.setMovie(self.movie)
-            self.animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.movie.start()
-        else:
-            print("Warning: Loading GIF not found or invalid. Showing text instead.")
-            self.animation_label.setText("Loading...")
-            self.animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.animation_label.setStyleSheet("color: white;")  # Make text visible on dark background
-
-        self.loading_text_label = QLabel("Loading DICOM files, please wait...", self.loading_dialog)
-        self.loading_text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.loading_text_label.setStyleSheet("color: white;")  # Make text visible on dark background
-
-        self.loading_dialog.layout().addWidget(self.animation_label)
-        self.loading_dialog.layout().addWidget(self.loading_text_label)
-        self.loading_dialog.show()
-        self.loading_dialog.adjustSize()
-
-        # Optional: Disable main window interaction while loading
-        self.setEnabled(False)
+        self.viewer_widget.show_loading_animation()
 
         # --- 2. Create QThread and DicomLoader instances ---
         self.dicom_thread = QThread()  # Create a new thread
@@ -280,14 +226,7 @@ class UIMainWindow(QMainWindow):
 
     def _on_dicom_loading_finished(self, volume, default_center, default_width, metadata_dict):
         print("DICOM loading finished (UI thread)")
-        # Hide and clean up the loading animation
-        if hasattr(self, 'loading_dialog') and self.loading_dialog.isVisible():
-            self.movie.stop()
-            self.loading_dialog.close()
-            # Clean up references to allow garbage collection
-            del self.loading_dialog
-            self.loading_dialog = None  # Important to set to None after deletion
-
+        self.viewer_widget.hide_loading_animation()
         # Re-enable main window interaction
         self.setEnabled(True)
 
@@ -302,11 +241,7 @@ class UIMainWindow(QMainWindow):
     def _on_dicom_loading_error(self, error_message):
         print(f"DICOM loading error (UI thread): {error_message}")
         # Hide and clean up the loading animation
-        if hasattr(self, 'loading_dialog') and self.loading_dialog.isVisible():
-            self.movie.stop()
-            self.loading_dialog.close()
-            del self.loading_dialog
-            self.loading_dialog = None
+        self.viewer_widget.hide_loading_animation()
 
         # Re-enable main window interaction
         self.setEnabled(True)

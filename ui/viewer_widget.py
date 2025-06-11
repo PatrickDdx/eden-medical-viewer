@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap, QImage
+from PyQt6.QtGui import QPixmap, QImage, QMovie
 import numpy as np
 
 class ViewerWidget(QWidget):
@@ -18,9 +18,19 @@ class ViewerWidget(QWidget):
 
         self.image_label.setText("No file selected")
 
+        self.setup_loading_animation() #loading animation setup
+
         layout = QVBoxLayout()
         layout.addWidget(self.image_label)
+
+        layout.addWidget(self.loading_animation_label)
+        layout.addWidget(self.loading_text_label)
+
         self.setLayout(layout)
+
+        # Ensure image label is on top by default, but hidden when loading
+        self.image_label.stackUnder(self.loading_animation_label)
+        self.loading_animation_label.stackUnder(self.loading_text_label)
 
         self.current_pixmap = None
         self.dicom_slices = None #3D array (z, y,x)
@@ -66,6 +76,28 @@ class ViewerWidget(QWidget):
             Qt.Key.Key_3: "soft tissues",
             Qt.Key.Key_4: "bone"
         }
+
+    def setup_loading_animation(self):
+        # --- Loading Animation Setup ---
+        self.loading_animation_label = QLabel(self)
+        self.loading_animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loading_animation_label.hide()  # Hide initially
+
+        self.loading_movie = QMovie(
+            "C:/Users/patri/GIT/dicomViewer/assets/animations/Infinity@1x-1.0s-200px-200px.gif")  # Adjust path as needed
+        if self.loading_movie.isValid():
+            self.loading_animation_label.setMovie(self.loading_movie)
+        else:
+            print("Warning: Loading GIF not found or invalid. Using text placeholder.")
+            self.loading_animation_label.setText("Loading...")
+            self.loading_animation_label.setStyleSheet("color: white;")  # Example style
+
+        # Add a placeholder label for loading text
+        self.loading_text_label = QLabel("Loading DICOM files, please wait...", self)
+        self.loading_text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loading_text_label.setStyleSheet("color: white;")
+        self.loading_text_label.hide()
+
 
     def resizeEvent(self, event):
         if hasattr(self, "current_pixmap") and self.current_pixmap:
@@ -231,4 +263,23 @@ class ViewerWidget(QWidget):
                 print(f"Failed to save image to {filepath}")
             else:
                 print(f"Image saved to {filepath}")
+
+    def show_loading_animation(self):
+        """Shows the loading animation and hides the image label."""
+        self.image_label.hide()
+        self.loading_animation_label.show()
+        self.loading_text_label.show()
+        if self.loading_movie.isValid():
+            self.loading_movie.start()
+        # Ensure the animation and text labels are positioned correctly
+        self.loading_animation_label.setGeometry(self.rect())
+        self.loading_text_label.setGeometry(self.rect().adjusted(0, self.height() // 4, 0, 0))
+
+    def hide_loading_animation(self):
+        """Hides the loading animation and shows the image label."""
+        if self.loading_movie.isValid():
+            self.loading_movie.stop()
+        self.loading_animation_label.hide()
+        self.loading_text_label.hide()
+        self.image_label.show()
 
