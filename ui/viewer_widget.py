@@ -95,7 +95,7 @@ class ViewerWidget(QWidget):
         #self.loading_animation_label.hide()  # Hide initially
 
         self.loading_movie = QMovie(
-            "C:/Users/patri/GIT/dicomViewer/assets/animations/Infinity@1x-1.0s-200px-200px.gif")  # Adjust path as needed
+            "C:/Users/patri/GIT/dicomViewer/assets/animations/Ripple@1x-1.0s-200px-200px.gif")  # Adjust path as needed
         if self.loading_movie.isValid():
             self.loading_animation_label.setMovie(self.loading_movie)
         else:
