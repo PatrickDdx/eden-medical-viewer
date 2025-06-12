@@ -184,7 +184,7 @@ class ViewerWidget(QWidget):
 
     def apply_window_preset(self, name: str):
         preset = self.window_presets.get(name)
-        print(f"presets: {preset}")
+        #print(f"presets: {preset}")
         if preset:
             self.update_windowing(preset["level"], preset["width"])
 

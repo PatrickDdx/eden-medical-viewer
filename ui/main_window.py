@@ -109,18 +109,6 @@ class UIMainWindow(QMainWindow):
 
         help_menu = menu.addMenu("Help")
 
-##################section for testing and prototyping for convenience ##########delete when publishing
-        # loda test data
-        test_data_menu = menu.addMenu("Test Data")
-
-        load_CT = QAction("CT", self)
-        load_CT.triggered.connect(lambda: self.load_test_data("CT"))
-        test_data_menu.addAction(load_CT)
-
-        load_MRI = QAction("MRI", self)
-        load_MRI.triggered.connect(lambda: self.load_test_data("MRI"))
-        test_data_menu.addAction(load_MRI)
-
     #-------------- Events -----------------------
     def dummy_func(self):
         print("dummy function clicked")
@@ -148,22 +136,36 @@ class UIMainWindow(QMainWindow):
         if file_path:
             print(f"open: {file_path}")
 
-            import os
             folder = os.path.dirname(file_path)
 
-            try:
-                volume, default_center, default_width, metadata_dict = self.reader.read_dicom_series(folder)
+            self.viewer_widget.show_loading_animation()
 
-                self.viewer_widget.load_dicom_series(volume)  # load dicom series
-                self.viewer_widget.update_windowing(default_center, default_width)  # apply initial windowing
+            # --- 2. Create QThread and DicomLoader instances ---
+            self.dicom_thread = QThread()  # Create a new thread
+            self.dicom_loader = DicomLoader(folder, self.reader)  # Your existing loader instance
 
-                self.metadata_viewer.display_metadata(metadata_dict)  # show the metadata
+            # --- 3. Move the DicomLoader to the new thread ---
+            self.dicom_loader.moveToThread(self.dicom_thread)
 
-                self.controls.slider.setMaximum(volume.shape[0] - 1)
-                self.controls.center_slider.setValue(default_center)
-                self.controls.width_slider.setValue(default_width)
-            except Exception as e:
-                print(f"Error loading dicom series:  {e}")
+            # --- 4. Connect signals and slots ---
+            # When the thread starts, call the loader's run method
+            self.dicom_thread.started.connect(self.dicom_loader.run)
+            # When the loader finishes, connect to our UI update slot
+            self.dicom_loader.finished.connect(self._on_dicom_loading_finished)
+            # When an error occurs, connect to our error handling slot
+            self.dicom_loader.error.connect(self._on_dicom_loading_error)
+            # When the loader finishes or errors, quit and delete the thread
+            self.dicom_loader.finished.connect(self.dicom_thread.quit)
+            self.dicom_loader.error.connect(self.dicom_thread.quit)
+            # Optional: Clean up the worker and thread objects when the thread finishes
+            self.dicom_thread.finished.connect(self.dicom_loader.deleteLater)
+            self.dicom_thread.finished.connect(self.dicom_thread.deleteLater)
+
+            # --- 5. Start the thread ---
+            self.dicom_thread.start()
+
+            # --- Slots for handling thread results (within YourMainViewerClass) ---
+
 
     def save_current_slice_as_image(self):
         print("Save as clicked")
@@ -181,48 +183,6 @@ class UIMainWindow(QMainWindow):
 
     def exit(self):
         self.close()
-
-##########################for prototyping/testing ############### delete when publishing
-    def load_test_data(self, modality):
-        print("loading test data")
-
-        if modality == "CT":
-            file_path = "C:/Users/patri/GIT/dicomViewer/assets/CT/series-000001/image-000003.dcm"
-        elif modality == "MRI":
-            file_path = "C:/Users/patri/GIT/dicomViewer/assets/MRI/Example_MRI_1/image-00001.dcm"
-        else:
-            return
-
-        import os
-        folder = os.path.dirname(file_path)
-
-        self.viewer_widget.show_loading_animation()
-
-        # --- 2. Create QThread and DicomLoader instances ---
-        self.dicom_thread = QThread()  # Create a new thread
-        self.dicom_loader = DicomLoader(folder, self.reader)  # Your existing loader instance
-
-        # --- 3. Move the DicomLoader to the new thread ---
-        self.dicom_loader.moveToThread(self.dicom_thread)
-
-        # --- 4. Connect signals and slots ---
-        # When the thread starts, call the loader's run method
-        self.dicom_thread.started.connect(self.dicom_loader.run)
-        # When the loader finishes, connect to our UI update slot
-        self.dicom_loader.finished.connect(self._on_dicom_loading_finished)
-        # When an error occurs, connect to our error handling slot
-        self.dicom_loader.error.connect(self._on_dicom_loading_error)
-        # When the loader finishes or errors, quit and delete the thread
-        self.dicom_loader.finished.connect(self.dicom_thread.quit)
-        self.dicom_loader.error.connect(self.dicom_thread.quit)
-        # Optional: Clean up the worker and thread objects when the thread finishes
-        self.dicom_thread.finished.connect(self.dicom_loader.deleteLater)
-        self.dicom_thread.finished.connect(self.dicom_thread.deleteLater)
-
-        # --- 5. Start the thread ---
-        self.dicom_thread.start()
-
-        # --- Slots for handling thread results (within YourMainViewerClass) ---
 
     def _on_dicom_loading_finished(self, volume, default_center, default_width, metadata_dict):
         print("DICOM loading finished (UI thread)")
