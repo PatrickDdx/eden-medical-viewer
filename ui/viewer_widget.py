@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QImage, QMovie
 import numpy as np
@@ -10,27 +10,38 @@ class ViewerWidget(QWidget):
         # set focus so key events get detected
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
+        #Main image label
         self.image_label = QLabel()
-
         self.image_label.setScaledContents(False)  # Let you control the scaling manually
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the image
         self.image_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
-
         self.image_label.setText("No file selected")
 
         self.setup_loading_animation() #loading animation setup
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.image_label)
+        # --- Main Layout using QStackedLayout ---
+        self.main_stacked_layout = QStackedLayout()
+        self.main_stacked_layout.addWidget(self.image_label)  # Index 0: Image
+        self.main_stacked_layout.addWidget(self.loading_container)  # Index 1: Loading animation
 
-        layout.addWidget(self.loading_animation_label)
-        layout.addWidget(self.loading_text_label)
+        # Set the main layout of the ViewerWidget
+        self.setLayout(self.main_stacked_layout)
 
-        self.setLayout(layout)
+        # Set initial visible widget (image_label)
+        self.main_stacked_layout.setCurrentWidget(self.image_label)
+
+        #layout = QVBoxLayout()
+        #layout.addWidget(self.image_label)
+
+        #layout.addWidget(self.loading_animation_label)
+        #layout.addWidget(self.loading_text_label)
+        #layout.addWidget(self.loading_container)
+
+        #self.setLayout(layout)
 
         # Ensure image label is on top by default, but hidden when loading
-        self.image_label.stackUnder(self.loading_animation_label)
-        self.loading_animation_label.stackUnder(self.loading_text_label)
+        #self.image_label.stackUnder(self.loading_animation_label)
+        #self.loading_animation_label.stackUnder(self.loading_text_label)
 
         self.current_pixmap = None
         self.dicom_slices = None #3D array (z, y,x)
@@ -81,7 +92,7 @@ class ViewerWidget(QWidget):
         # --- Loading Animation Setup ---
         self.loading_animation_label = QLabel(self)
         self.loading_animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.loading_animation_label.hide()  # Hide initially
+        #self.loading_animation_label.hide()  # Hide initially
 
         self.loading_movie = QMovie(
             "C:/Users/patri/GIT/dicomViewer/assets/animations/Infinity@1x-1.0s-200px-200px.gif")  # Adjust path as needed
@@ -96,8 +107,15 @@ class ViewerWidget(QWidget):
         self.loading_text_label = QLabel("Loading DICOM files, please wait...", self)
         self.loading_text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.loading_text_label.setStyleSheet("color: white;")
-        self.loading_text_label.hide()
+        #self.loading_text_label.hide()
 
+        self.loading_container = QWidget()
+        loading_layout = QVBoxLayout()
+        loading_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        loading_layout.addWidget(self.loading_animation_label)
+        loading_layout.addWidget(self.loading_text_label)
+        self.loading_container.setLayout(loading_layout)
+        self.loading_container.hide()
 
     def resizeEvent(self, event):
         if hasattr(self, "current_pixmap") and self.current_pixmap:
@@ -266,20 +284,13 @@ class ViewerWidget(QWidget):
 
     def show_loading_animation(self):
         """Shows the loading animation and hides the image label."""
-        self.image_label.hide()
-        self.loading_animation_label.show()
-        self.loading_text_label.show()
+        self.main_stacked_layout.setCurrentWidget(self.loading_container)
         if self.loading_movie.isValid():
             self.loading_movie.start()
-        # Ensure the animation and text labels are positioned correctly
-        self.loading_animation_label.setGeometry(self.rect())
-        self.loading_text_label.setGeometry(self.rect().adjusted(0, self.height() // 4, 0, 0))
+        QApplication.processEvents()
 
     def hide_loading_animation(self):
         """Hides the loading animation and shows the image label."""
         if self.loading_movie.isValid():
             self.loading_movie.stop()
-        self.loading_animation_label.hide()
-        self.loading_text_label.hide()
-        self.image_label.show()
-
+        self.main_stacked_layout.setCurrentWidget(self.image_label)
