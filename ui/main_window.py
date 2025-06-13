@@ -84,6 +84,10 @@ class UIMainWindow(QMainWindow):
         save_as_action.triggered.connect(self.save_current_slice_as_image)
         file_menu.addAction(save_as_action)
 
+        export_cine_loop = QAction("Eport as MP4", self)
+        export_cine_loop.triggered.connect(self.save_as_mp4)
+        file_menu.addAction(export_cine_loop)
+
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.exit)
         file_menu.addAction(exit_action)
@@ -107,6 +111,21 @@ class UIMainWindow(QMainWindow):
         load_action = QAction("Load Model", self)
         load_action.triggered.connect(self.load_ai_model)
         ai_menu.addAction(load_action)
+
+        # View Menu
+        view_menu = menu.addMenu("View")
+
+        play_cine = QAction("Play/Stop cine", self)
+        play_cine.triggered.connect(self.viewer_widget.toggle_cine_loop)
+        view_menu.addAction(play_cine)
+
+        faster_cine = QAction("Faster cine", self)
+        faster_cine.triggered.connect(self.viewer_widget.increase_cine_speed)
+        view_menu.addAction(faster_cine)
+
+        slower_cine = QAction("Slower cine", self)
+        slower_cine.triggered.connect(self.viewer_widget.decrease_cine_speed)
+        view_menu.addAction(slower_cine)
 
         help_menu = menu.addMenu("Help")
 
@@ -174,6 +193,14 @@ class UIMainWindow(QMainWindow):
 
         if file_path:
             self.viewer_widget.save_current_slice(file_path)
+        else:
+            print("Save cancelled")
+
+    def save_as_mp4(self):
+        file_path = QFileDialog.getSaveFileName(self, "Export as MP4", "", "MP4 Video (*.mp4)")
+
+        if file_path:
+            self.viewer_widget.export_as_mp4(file_path)
         else:
             print("Save cancelled")
 

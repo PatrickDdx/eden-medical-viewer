@@ -1,7 +1,8 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout, QFileDialog
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap, QImage, QMovie
 import numpy as np
+import cv2
 
 class ViewerWidget(QWidget):
     def __init__(self, parent=None):
@@ -57,6 +58,11 @@ class ViewerWidget(QWidget):
         self.slice_slider = None
         self.center_slider = None
         self.width_slider = None
+
+        self.cine_timer = QTimer()
+        self.cine_timer.timeout.connect(self.next_frame)
+        self.is_cine_playing = False
+        self.cine_interval = 100
 
         self.window_presets = {
             #head and neck
@@ -270,6 +276,9 @@ class ViewerWidget(QWidget):
         if name:
             self.apply_window_preset(name)
 
+        if key == Qt.Key.Key_P:
+            self.toggle_cine_loop()
+
 
     def save_current_slice(self, filepath: str):
         """Saves the current pixmap (from image_display) to a file
@@ -294,3 +303,67 @@ class ViewerWidget(QWidget):
         if self.loading_movie.isValid():
             self.loading_movie.stop()
         self.main_stacked_layout.setCurrentWidget(self.image_label)
+
+
+    def start_cine_loop(self):
+        if self.dicom_slices is None:
+            return
+        self.cine_timer.start(self.cine_interval)
+        self.is_cine_playing = True
+
+    def stop_cine_loop(self):
+        self.cine_timer.stop()
+        self.is_cine_playing = False
+
+    def toggle_cine_loop(self):
+        if self.is_cine_playing:
+            self.stop_cine_loop()
+        else:
+            self.start_cine_loop()
+
+    def next_frame(self):
+        if self.dicom_slices is None:
+            return
+        self.current_slice_index = (self.current_slice_index + 1) % self.dicom_slices.shape[0]
+        self.update_image(self.current_slice_index)
+
+    def increase_cine_speed(self):
+        self.cine_interval = max(10, self.cine_interval - 30)
+        if self.is_cine_playing:
+            self.cine_timer.start(self.cine_interval)
+
+    def decrease_cine_speed(self):
+        self.cine_interval = min(250, self.cine_interval + 30)
+        if self.is_cine_playing:
+            self.cine_timer.start(self.cine_interval)
+
+    def normalize_to_uint8(self, image):
+        img = np.clip(image, np.min(image), np.max(image))
+        img = (img-img.min()) / (img.max() - img.min()) * 255
+        return  img.astype(np.uint8)
+
+    def export_as_mp4(self, file_path):
+        if self.dicom_slices is None:
+            return
+
+        if not file_path.lower().endswith(".mp4"):
+            file_path += ".mp4"
+
+        height, width = self.dicom_slices[0].shape
+        fps = 1000 // self.cine_interval if self.cine_interval > 0 else 10
+
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        writer = cv2.VideoWriter(file_path, fourcc, fps, (width, height))
+
+        for i in range(self.dicom_slices.shape[0]):
+            img = self.normalize_to_uint8(self.dicom_slices[i])
+            frame = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            writer.write(frame)
+
+        writer.release()
+
+        print(f"Exported cine loop to {file_path}")
+
+
+
+
