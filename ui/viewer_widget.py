@@ -343,26 +343,35 @@ class ViewerWidget(QWidget):
         return  img.astype(np.uint8)
 
     def export_as_mp4(self, file_path):
+        print("Starting export_as_mp4")
+
         if self.dicom_slices is None:
+            print("No dicom_slices loaded")
             return
 
         if not file_path.lower().endswith(".mp4"):
             file_path += ".mp4"
 
+        print(f"Saving to: {file_path}")
+        print(f"cine_interval: {self.cine_interval}")
+
         height, width = self.dicom_slices[0].shape
         fps = 1000 // self.cine_interval if self.cine_interval > 0 else 10
+        print(f"Video dimensions: {width}x{height}, FPS: {fps}")
+
+        import cv2  # <- make sure OpenCV is imported at the top
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         writer = cv2.VideoWriter(file_path, fourcc, fps, (width, height))
 
         for i in range(self.dicom_slices.shape[0]):
-            img = self.normalize_to_uint8(self.dicom_slices[i])
+            img = self.apply_windowing(self.dicom_slices[i])
             frame = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
             writer.write(frame)
 
         writer.release()
+        print(f"Export complete: {file_path}")
 
-        print(f"Exported cine loop to {file_path}")
 
 
 

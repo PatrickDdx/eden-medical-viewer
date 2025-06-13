@@ -197,10 +197,15 @@ class UIMainWindow(QMainWindow):
             print("Save cancelled")
 
     def save_as_mp4(self):
-        file_path = QFileDialog.getSaveFileName(self, "Export as MP4", "", "MP4 Video (*.mp4)")
+        print("save as mp4 clicked")
+        file_path, _ = QFileDialog.getSaveFileName(self, "Export as MP4", "", "MP4 Video (*.mp4)")
 
         if file_path:
-            self.viewer_widget.export_as_mp4(file_path)
+            try:
+                self.viewer_widget.export_as_mp4(file_path)
+                print("MP4 export completed successfully.")
+            except Exception as e:
+                print(f"MP4 export failed: {e}")
         else:
             print("Save cancelled")
 
