@@ -31,29 +31,22 @@ class ViewerWidget(QWidget):
         # Set initial visible widget (image_label)
         self.main_stacked_layout.setCurrentWidget(self.image_label)
 
-        #layout = QVBoxLayout()
-        #layout.addWidget(self.image_label)
-
-        #layout.addWidget(self.loading_animation_label)
-        #layout.addWidget(self.loading_text_label)
-        #layout.addWidget(self.loading_container)
-
-        #self.setLayout(layout)
-
-        # Ensure image label is on top by default, but hidden when loading
-        #self.image_label.stackUnder(self.loading_animation_label)
-        #self.loading_animation_label.stackUnder(self.loading_text_label)
-
         self.current_pixmap = None
         self.dicom_slices = None #3D array (z, y,x)
         self.current_slice_index = 0
         self.window_center = 0
         self.window_width = 0
 
+        self.zoom_factor = 1.0
+        self.pan_offset = (0,0)
+        self.is_panning = False
+        self.pan_start_pos = None
+
         self._mouse_pressed = False
         self._last_mouse_pos = None
         self._start_window_center = 0
         self._start_window_width = 0
+        self.pan_offset = (0,0)
 
         self.slice_slider = None
         self.center_slider = None
@@ -148,6 +141,10 @@ class ViewerWidget(QWidget):
         q_image = QImage(image_data_2d.tobytes(), width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
         self.current_pixmap = QPixmap.fromImage(q_image)
         #self.image_label.setPixmap(self.current_pixmap)
+
+        self.update_scaled_pixmap()
+
+        """
         scaled_pixmap = self.current_pixmap.scaled(
             self.image_label.size(),
             Qt.AspectRatioMode.KeepAspectRatio,
@@ -156,12 +153,43 @@ class ViewerWidget(QWidget):
         self.image_label.setPixmap(scaled_pixmap)
 
         self.image_label.setText("") #clear Text
+        
+        """
+
+    def update_scaled_pixmap(self):
+        if not self.current_pixmap or self.current_pixmap.isNull():
+            return
+
+        base_pixmap = self.current_pixmap
+
+        base_width = base_pixmap.width()
+        base_height = base_pixmap.height()
+
+        # Prevent crash by avoiding 0 dimensions
+        if base_width <= 0 or base_height <= 0:
+            print("Invalid pixmap size.")
+            return
+
+        scaled_width = max(1, int(base_width * self.zoom_factor))
+        scaled_height = max(1, int(base_height * self.zoom_factor))
+
+        scaled = base_pixmap.scaled(
+            scaled_width,
+            scaled_height,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+
+        self.image_label.setPixmap(scaled)
+        self.image_label.setText("")  # clear label text
+        self.image_label.move(self.pan_offset[0], self.pan_offset[1])
 
     def update_image(self, slice_index: int):
         """Update the displayed slice"""
         if self.dicom_slices is None:
             return
 
+        self.pan_offset = (0, 0)
         self.current_slice_index = slice_index
         slice_data = self.dicom_slices[slice_index]
         processed = self.apply_windowing(slice_data)
@@ -219,17 +247,27 @@ class ViewerWidget(QWidget):
         if self.dicom_slices is None:
             return
 
+        modifiers = event.modifiers()
+        delta = event.angleDelta().y()  # Positive = scroll up, negative = scroll down
+
+        if modifiers & Qt.KeyboardModifier.ControlModifier:
+            zoom_step = 0.1
+            if delta > 0:
+                self.zoom_factor = min(5.0, self.zoom_factor + zoom_step)
+            else:
+                self.zoom_factor = max(0.1, self.zoom_factor - zoom_step)
+            self.update_scaled_pixmap()
+            return #skip slice scrolling while zooming
+
+        #Regular slice scrolling
         number_of_slices = self.dicom_slices.shape[0]
 
         step_amount = int(number_of_slices * 0.10) #10% of the slices when fast scrolling
 
-        delta = event.angleDelta().y() # Positive = scroll up, negative = scroll down
-
-        # Default step = 1, with Ctrl = 5 slices
-        # Qt6 modifiers: use Qt.KeyboardModifier.ControlModifier
-        modifiers = event.modifiers()
-        step = step_amount if modifiers == Qt.KeyboardModifier.ControlModifier or \
-                    modifiers & Qt.KeyboardModifier.ControlModifier else 1
+        # Default step = 1, with Shift = 5 slices
+        # Qt6 modifiers: use Qt.KeyboardModifier.#shiftModifier
+        step = step_amount if modifiers == Qt.KeyboardModifier.ShiftModifier or \
+                    modifiers & Qt.KeyboardModifier.ShiftModifier else 1
 
         if delta > 0:
             self.current_slice_index = min(self.current_slice_index + step, number_of_slices - 1)
@@ -244,11 +282,18 @@ class ViewerWidget(QWidget):
         self.width_slider  = width_slider
 
     def mousePressEvent(self, event):
+        #right button for windowing
         if event.button() == Qt.MouseButton.RightButton:
             self._mouse_pressed = True
             self._last_mouse_pos = event.position()
             self._start_window_center = self.window_center
             self._start_window_width = self.window_width
+
+         #left button for panning
+        elif event.button() == Qt.MouseButton.LeftButton:
+            self.is_panning = True
+            self.pan_start_pos = event.position()
+
 
     def mouseMoveEvent(self, event):
         if self._mouse_pressed:
@@ -263,10 +308,21 @@ class ViewerWidget(QWidget):
 
             self.update_windowing(new_center, new_width)
 
+        elif self.is_panning and self.pan_start_pos:
+            delta = event.position() - self.pan_start_pos
+            dx = delta.x()
+            dy = delta.y()
+            self.pan_offset = (self.pan_offset[0] + int(dx), self.pan_offset[1]+int(dy))
+            self.pan_start_pos = event.position()
+            self.update_scaled_pixmap()
+
+
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:
             self._mouse_pressed = False
             self._last_mouse_pos = None
+        elif event.button() == Qt.MouseButton.LeftButton:
+            self.is_panning = False
 
     def keyPressEvent(self, event):
         key = event.key()

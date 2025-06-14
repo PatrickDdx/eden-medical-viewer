@@ -1,5 +1,5 @@
 # ui/metadata_viewer.py
-from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, QVBoxLayout, QHeaderView
+from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, QVBoxLayout, QHeaderView, QSizePolicy, QScrollArea
 from PyQt6.QtCore import QSize
 
 class DicomMetadataViewer(QWidget):
@@ -12,6 +12,8 @@ class DicomMetadataViewer(QWidget):
         self.tree.setAlternatingRowColors(True)
         self.tree.setIndentation(16)
         self.tree.header().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        self.tree.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         layout = QVBoxLayout()
         layout.addWidget(self.tree)
@@ -89,7 +91,7 @@ class DicomMetadataViewer(QWidget):
             item = QTreeWidgetItem([str(key), str(value)])
             self.tree.addTopLevelItem(item)
 
-        self.adjust_height_simple()
+        #self.adjust_height_simple()
 
     def extract_and_display_metadata(self, dicom_dataset):
         """expects a dicom dataset and extracts ALL the metadata and displays in a tree"""
