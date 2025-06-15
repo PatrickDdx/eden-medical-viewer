@@ -4,40 +4,26 @@ from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter
 import numpy as np
 import cv2
 
+from ui.graphics_view import CustomGraphicsView
+
+
 class ViewerWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.graphics_view = QGraphicsView()
+        self.graphics_view = CustomGraphicsView(self)
         self.scene = QGraphicsScene()
         self.graphics_view.setScene(self.scene)
-        #self.graphics_view.setSceneRect(self.graphics_view.viewport().rect())
-        #self.graphics_view.setSceneRect(self.graphics_view.scene().itemsBoundingRect())
 
         self.pixmap_item = QGraphicsPixmapItem()
         self.scene.addItem(self.pixmap_item)
 
-
-        self.graphics_view.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
-        self.graphics_view.setDragMode(QGraphicsView.DragMode.NoDrag)
-        self.graphics_view.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.graphics_view.setBackgroundBrush(Qt.GlobalColor.black)
         self.graphics_view.fitInView(self.pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
         #disable scrollbars so the image doesn't shift on wheel events
-        self.graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         # set focus so key events get detected
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-
-        #Main image label
-        """
-        self.image_label = QLabel()
-        self.image_label.setScaledContents(False)  # Let you control the scaling manually
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the image
-        self.image_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
-        self.image_label.setText("No file selected")
-        """
+        self.setFocus()
 
         self.setup_loading_animation() #loading animation setup
 
@@ -55,18 +41,10 @@ class ViewerWidget(QWidget):
         self.current_pixmap = None
         self.dicom_slices = None #3D array (z, y,x)
         self.current_slice_index = 0
-        self.window_center = 0
-        self.window_width = 0
+        self.window_center = 40
+        self.window_width = 80
 
         self.zoom_factor = 1.0
-        self.pan_offset = (0,0)
-        self.is_panning = False
-        self.pan_start_pos = None
-
-        self._mouse_pressed = False
-        self._last_mouse_pos = None
-        self._start_window_center = 0
-        self._start_window_width = 0
 
         self.slice_slider = None
         self.center_slider = None
@@ -137,23 +115,16 @@ class ViewerWidget(QWidget):
         self.loading_container.hide()
 
     def resizeEvent(self, event):
-        """
-        if hasattr(self, "current_pixmap") and self.current_pixmap:
-            scaled_pixmap = self.current_pixmap.scaled(
-                self.image_label.size(),
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            )
-            self.image_label.setPixmap(scaled_pixmap)
-            """
-        self.update_scaled_pixmap()
+        # When the viewer resizes, ensure the image fits properly
+        if self.current_pixmap and not self.current_pixmap.isNull():
+            self.graphics_view.fitInView(self.pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
         super().resizeEvent(event)
 
     def load_dicom_series(self, volume_data: np.ndarray):
         """Takes a 3D NumPy array and sets up the viewer."""
         self.dicom_slices = volume_data
         self.current_slice_index = 0
-        #self.update_image(self.current_slice_index)
+        #self.update_image(self.current_slice_index) #-> the image gets updated (and therefore windowed) when loading initially from the main Window
 
     def display_image(self, image_data_2d):
         """receives 2D array of type np.uint8 and displays it"""
@@ -163,40 +134,17 @@ class ViewerWidget(QWidget):
 
         q_image = QImage(image_data_2d.tobytes(), width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
         self.current_pixmap = QPixmap.fromImage(q_image)
-        #self.image_label.setPixmap(self.current_pixmap)
         self.pixmap_item.setPixmap(self.current_pixmap)
-        self.graphics_view.resetTransform()
-        self.graphics_view.scale(self.zoom_factor, self.zoom_factor)
-        self.graphics_view.centerOn(self.pixmap_item)
-
-        #self.update_scaled_pixmap()
-
-        """
-        scaled_pixmap = self.current_pixmap.scaled(
-            self.image_label.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-        self.image_label.setPixmap(scaled_pixmap)
-
-        self.image_label.setText("") #clear Text
-        
-        """
-
-    def update_scaled_pixmap(self):
-        if not self.current_pixmap or self.current_pixmap.isNull():
-            return
 
         self.graphics_view.resetTransform()
+        self.graphics_view.fitInView(self.pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
         self.graphics_view.scale(self.zoom_factor, self.zoom_factor)
-        self.graphics_view.centerOn(self.pixmap_item)
 
     def update_image(self, slice_index: int):
         """Update the displayed slice"""
         if self.dicom_slices is None:
             return
 
-        self.pan_offset = (0, 0)
         self.current_slice_index = slice_index
         slice_data = self.dicom_slices[slice_index]
         processed = self.apply_windowing(slice_data)
@@ -263,7 +211,11 @@ class ViewerWidget(QWidget):
                 self.zoom_factor = min(5.0, self.zoom_factor + zoom_step)
             else:
                 self.zoom_factor = max(0.1, self.zoom_factor - zoom_step)
-            self.update_scaled_pixmap()
+
+            self.graphics_view.resetTransform()
+            self.graphics_view.fitInView(self.pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
+            self.graphics_view.scale(self.zoom_factor, self.zoom_factor)
+
             return #skip slice scrolling while zooming
 
         #Regular slice scrolling
@@ -290,46 +242,6 @@ class ViewerWidget(QWidget):
         self.center_slider = center_slider
         self.width_slider  = width_slider
 
-    def mousePressEvent(self, event):
-        #right button for windowing
-        if event.button() == Qt.MouseButton.RightButton:
-            self._mouse_pressed = True
-            self._last_mouse_pos = event.position()
-            self._start_window_center = self.window_center
-            self._start_window_width = self.window_width
-
-         #left button for panning
-        elif event.button() == Qt.MouseButton.LeftButton:
-            self.is_panning = True
-            self.pan_start_pos = event.position()
-
-
-    def mouseMoveEvent(self, event):
-        if self._mouse_pressed:
-            delta = event.position() - self._last_mouse_pos
-            dx = delta.x()
-            dy = delta.y()
-
-            new_center = self._start_window_center + int(dy)
-            new_width = self._start_window_width + int(dx)
-
-            new_width = max(1, new_width) #to avoid division by zero
-
-            self.update_windowing(new_center, new_width)
-
-        elif self.is_panning and self.pan_start_pos:
-            delta = event.position() - self.pan_start_pos
-            self.pan_start_pos = event.position()
-            self.translate(delta.x(), delta.y())
-
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MouseButton.RightButton:
-            self._mouse_pressed = False
-            self._last_mouse_pos = None
-        elif event.button() == Qt.MouseButton.LeftButton:
-            self.is_panning = False
-
     def keyPressEvent(self, event):
         key = event.key()
         #print(f"key pressed: {key}")
@@ -341,6 +253,7 @@ class ViewerWidget(QWidget):
         if key == Qt.Key.Key_P:
             self.toggle_cine_loop()
 
+        super().keyPressEvent(event)
 
     def save_current_slice(self, filepath: str):
         """Saves the current pixmap (from image_display) to a file
