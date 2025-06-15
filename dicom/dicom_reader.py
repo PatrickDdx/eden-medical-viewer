@@ -2,6 +2,7 @@ import pydicom
 import numpy as np
 import os
 from concurrent.futures import ThreadPoolExecutor
+import time
 
 class DicomReader():
     def __init__(self):
@@ -22,6 +23,8 @@ class DicomReader():
 
 
     def read_dicom_series(self, folder_path):
+        start_time = time.time()
+
         files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(".dcm")]
 
         if not files:
@@ -57,6 +60,10 @@ class DicomReader():
         window_width = extract_first_int(first_dataset.get("WindowWidth", 400), 400)
 
         metadata = self.get_metadata(first_dataset)
+
+        end_time = time.time()
+        total_time = end_time - start_time
+        print(f"{total_time} seconds needed to open {len(files)} DICOM files in {folder_path}")
 
         return volume, window_center, window_width, metadata
 
