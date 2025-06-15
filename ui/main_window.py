@@ -12,6 +12,15 @@ from ui.viewer_widget import ViewerWidget
 from dicom.dicom_reader import DicomReader
 from ui.controls import DicomControls
 from dicom.dicom_loader import DicomLoader
+from ui.stylesheets import dark_theme
+from ui.menu_builder import (
+    _build_file_menu,
+    _build_windowing_menu,
+    _build_ai_menu,
+    _build_view_menu,
+    _build_help_menu,
+)
+from dicom.dicom_loader_thread import start_dicom_loader
 
 
 class UIMainWindow(QMainWindow):
@@ -33,6 +42,7 @@ class UIMainWindow(QMainWindow):
                                       )
 
         self.setup_central_layout()
+
         self.setupMenuBar()
 
         self.metadata_viewer = DicomMetadataViewer()
@@ -41,7 +51,8 @@ class UIMainWindow(QMainWindow):
         self.metadata_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.metadata_dock)
 
-        self.apply_stylesheet()
+        #set dark theme
+        self.setStyleSheet(dark_theme())
 
     def setup_central_layout(self):
         """Creates a central widget with layout for viewer and controls"""
@@ -56,100 +67,19 @@ class UIMainWindow(QMainWindow):
 
 
     def setupMenuBar(self):
+        """Creates the Menu Bar with the functions defined in 'menu_builder.py'"""
         menu = self.menuBar()
 
-        #---------------------------------
-        #creating a menu dummy:
-        """
-        dummy_menu = menu.addMenu("dummy")
+        #Build File Menu, #Windowing Menu, # AI Menu, View Menu, Help Menu
+        _build_file_menu(self, menu)
+        _build_windowing_menu(self, menu)
+        _build_ai_menu(self, menu)
+        _build_view_menu(self, menu)
+        _build_help_menu(self, menu)
 
-        test_data = QAction("dummy action", self)
-        test_data.triggered.connect(self.dummy_func)
-        dummy_menu.addAction(test_data) 
-        """
 
-        #----------------------------
-
-        # File Menu
-        file_menu = menu.addMenu("File")
-
-        open_action = QAction("Open DICOM", self)
-        open_action.triggered.connect(self.open_dicom_file_func)
-        file_menu.addAction(open_action)
-
-        #save_action = QAction("Save", self)
-        #file_menu.addAction(save_action)
-
-        save_as_action = QAction("Save As Image", self)
-        save_as_action.triggered.connect(self.save_current_slice_as_image)
-        file_menu.addAction(save_as_action)
-
-        export_cine_loop = QAction("Export as MP4", self)
-        export_cine_loop.triggered.connect(self.save_as_mp4)
-        file_menu.addAction(export_cine_loop)
-
-        exit_action = QAction("Exit", self)
-        exit_action.triggered.connect(self.exit)
-        file_menu.addAction(exit_action)
-
-        #Windowing menu
-        window_presets_menu = menu.addMenu("Windowing")
-
-        for name in self.viewer_widget.window_presets:
-            action = QAction(name, self)
-
-            action.triggered.connect(lambda checked, n=name: self.viewer_widget.apply_window_preset(n))
-            window_presets_menu.addAction(action)
-
-        current_window = QAction("Current Window", self)
-        current_window.triggered.connect(self.viewer_widget.get_current_window)
-        window_presets_menu.addAction(current_window)
-
-        # AI Menu
-        ai_menu = menu.addMenu("AI")
-
-        load_action = QAction("Load Model", self)
-        load_action.triggered.connect(self.load_ai_model)
-        ai_menu.addAction(load_action)
-
-        # View Menu
-        view_menu = menu.addMenu("View")
-
-        play_cine = QAction("Play/Stop cine", self)
-        play_cine.triggered.connect(self.viewer_widget.toggle_cine_loop)
-        view_menu.addAction(play_cine)
-
-        faster_cine = QAction("Faster cine", self)
-        faster_cine.triggered.connect(self.viewer_widget.increase_cine_speed)
-        view_menu.addAction(faster_cine)
-
-        slower_cine = QAction("Slower cine", self)
-        slower_cine.triggered.connect(self.viewer_widget.decrease_cine_speed)
-        view_menu.addAction(slower_cine)
-
-        help_menu = menu.addMenu("Help")
-
-    #-------------- Events -----------------------
-    def dummy_func(self):
-        print("dummy function clicked")
-
-        test_data_path =  pydicom.data.get_testdata_file("CT_small.dcm")
-        print(f"file path: {test_data_path}")
-
-        #ds = pydicom.dcmread(test_data_path) # this works
-
-        ds = self.reader.read_dicom_file(test_data_path)
-
-        pixel_data = self.reader.get_pixel_array(ds)
-
-        print(pixel_data.shape)
-
-        self.viewer_widget.display_image(pixel_data)
-
-        print("end of dummy")
-
-    #---------------------
     def open_dicom_file_func(self):
+
         print("open DICOM file clicked")
         file_path, _ = QFileDialog.getOpenFileName(self, "Open DICOM File", "", "DICOM Files (*.dcm);;All Files (*)")
         print(file_path)
@@ -160,31 +90,12 @@ class UIMainWindow(QMainWindow):
 
             self.viewer_widget.show_loading_animation()
 
-            # --- 2. Create QThread and DicomLoader instances ---
-            self.dicom_thread = QThread()  # Create a new thread
-            self.dicom_loader = DicomLoader(folder, self.reader)  # Your existing loader instance
-
-            # --- 3. Move the DicomLoader to the new thread ---
-            self.dicom_loader.moveToThread(self.dicom_thread)
-
-            # --- 4. Connect signals and slots ---
-            # When the thread starts, call the loader's run method
-            self.dicom_thread.started.connect(self.dicom_loader.run)
-            # When the loader finishes, connect to our UI update slot
-            self.dicom_loader.finished.connect(self._on_dicom_loading_finished)
-            # When an error occurs, connect to our error handling slot
-            self.dicom_loader.error.connect(self._on_dicom_loading_error)
-            # When the loader finishes or errors, quit and delete the thread
-            self.dicom_loader.finished.connect(self.dicom_thread.quit)
-            self.dicom_loader.error.connect(self.dicom_thread.quit)
-            # Optional: Clean up the worker and thread objects when the thread finishes
-            self.dicom_thread.finished.connect(self.dicom_loader.deleteLater)
-            self.dicom_thread.finished.connect(self.dicom_thread.deleteLater)
-
-            # --- 5. Start the thread ---
-            self.dicom_thread.start()
-
-            # --- Slots for handling thread results (within YourMainViewerClass) ---
+            self.dicom_thread, self.dicom_loader = start_dicom_loader(
+                folder,
+                self.reader,
+                self._on_dicom_loading_finished,
+                self._on_dicom_loading_error
+            )
 
 
     def save_current_slice_as_image(self):
@@ -214,7 +125,7 @@ class UIMainWindow(QMainWindow):
         if model_path:
             print(f"loading following model: {model_path}")
 
-    def exit(self):
+    def close_application(self):
         self.close()
 
     def _on_dicom_loading_finished(self, volume, default_center, default_width, metadata_dict):
@@ -242,86 +153,6 @@ class UIMainWindow(QMainWindow):
         # Show an error message to the user
         QMessageBox.critical(self, "Loading Error", f"Failed to load DICOM series:\n{error_message}")
 
-    def apply_stylesheet(self):
-        dark_style = """
-            QMainWindow {
-                background-color: #2b2b2b;
-            }
-
-            QLabel {
-                color: #eeeeee;
-                font-size: 14px;
-            }
-
-            QSlider::groove:horizontal {
-                border: 1px solid #444;
-                height: 6px;
-                background: #666;
-                margin: 2px 0;
-                border-radius: 3px;
-            }
-
-            QSlider::handle:horizontal {
-                background: #00bcd4;
-                border: 1px solid #5c5c5c;
-                width: 14px;
-                height: 14px;
-                margin: -4px 0;
-                border-radius: 7px;
-            }
-
-            QDockWidget {
-                titlebar-close-icon: url(none);
-                titlebar-normal-icon: url(none);
-                font-weight: bold;
-                color: #ffffff;
-                border: 1px solid #444444;
-                background-color: #333333;
-                border-radius: 6px;
-            }
-            
-            QDockWidget::title {
-                background-color: #3d3d3d;
-                padding: 4px;
-                border-top-left-radius: 6px;
-                border-top-right-radius: 6px;
-            }
-
-            QDockWidget:hover {
-                border: 1px solid #00bcd4;
-            }
 
 
-            QMenuBar {
-                background-color: #2b2b2b;
-                color: #cccccc;
-            }
-
-            QMenuBar::item:selected {
-                background: #444444;
-            }
-
-            QMenu {
-                background-color: #2b2b2b;
-                color: #cccccc;
-            }
-
-            QMenu::item:selected {
-                background-color: #007acc;
-                color: white;
-            }
-
-
-            QPushButton {
-                background-color: #3c3c3c;
-                color: white;
-                border-radius: 4px;
-                padding: 6px 12px;
-            }
-
-            QPushButton:hover {
-                background-color: #555;
-            }
-        """
-        self.setStyleSheet(dark_style)
 
