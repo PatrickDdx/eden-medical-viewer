@@ -44,7 +44,7 @@ class UIMainWindow(QMainWindow):
         self.apply_stylesheet()
 
     def setup_central_layout(self):
-        """Creates a central wieget with layout for viewer and controls"""
+        """Creates a central widget with layout for viewer and controls"""
         central_widget = QWidget()
         layout = QVBoxLayout()
 
@@ -59,7 +59,7 @@ class UIMainWindow(QMainWindow):
         menu = self.menuBar()
 
         #---------------------------------
-        #creatin a menu dummy:
+        #creating a menu dummy:
         """
         dummy_menu = menu.addMenu("dummy")
 
@@ -84,7 +84,7 @@ class UIMainWindow(QMainWindow):
         save_as_action.triggered.connect(self.save_current_slice_as_image)
         file_menu.addAction(save_as_action)
 
-        export_cine_loop = QAction("Eport as MP4", self)
+        export_cine_loop = QAction("Export as MP4", self)
         export_cine_loop.triggered.connect(self.save_as_mp4)
         file_menu.addAction(export_cine_loop)
 
