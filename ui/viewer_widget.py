@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout, QFileDialog
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout, QFileDialog, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QPixmap, QImage, QMovie
+from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter
 import numpy as np
 import cv2
 
@@ -8,28 +8,49 @@ class ViewerWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.graphics_view = QGraphicsView()
+        self.scene = QGraphicsScene()
+        self.graphics_view.setScene(self.scene)
+        #self.graphics_view.setSceneRect(self.graphics_view.viewport().rect())
+        #self.graphics_view.setSceneRect(self.graphics_view.scene().itemsBoundingRect())
+
+        self.pixmap_item = QGraphicsPixmapItem()
+        self.scene.addItem(self.pixmap_item)
+
+
+        self.graphics_view.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
+        self.graphics_view.setDragMode(QGraphicsView.DragMode.NoDrag)
+        self.graphics_view.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.graphics_view.setBackgroundBrush(Qt.GlobalColor.black)
+        self.graphics_view.fitInView(self.pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
+        #disable scrollbars so the image doesn't shift on wheel events
+        self.graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
         # set focus so key events get detected
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         #Main image label
+        """
         self.image_label = QLabel()
         self.image_label.setScaledContents(False)  # Let you control the scaling manually
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the image
         self.image_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.image_label.setText("No file selected")
+        """
 
         self.setup_loading_animation() #loading animation setup
 
         # --- Main Layout using QStackedLayout ---
         self.main_stacked_layout = QStackedLayout()
-        self.main_stacked_layout.addWidget(self.image_label)  # Index 0: Image
+        self.main_stacked_layout.addWidget(self.graphics_view)  # use the QGraphicsView itself
         self.main_stacked_layout.addWidget(self.loading_container)  # Index 1: Loading animation
 
         # Set the main layout of the ViewerWidget
         self.setLayout(self.main_stacked_layout)
 
         # Set initial visible widget (image_label)
-        self.main_stacked_layout.setCurrentWidget(self.image_label)
+        self.main_stacked_layout.setCurrentWidget(self.graphics_view)
 
         self.current_pixmap = None
         self.dicom_slices = None #3D array (z, y,x)
@@ -46,7 +67,6 @@ class ViewerWidget(QWidget):
         self._last_mouse_pos = None
         self._start_window_center = 0
         self._start_window_width = 0
-        self.pan_offset = (0,0)
 
         self.slice_slider = None
         self.center_slider = None
@@ -117,6 +137,7 @@ class ViewerWidget(QWidget):
         self.loading_container.hide()
 
     def resizeEvent(self, event):
+        """
         if hasattr(self, "current_pixmap") and self.current_pixmap:
             scaled_pixmap = self.current_pixmap.scaled(
                 self.image_label.size(),
@@ -124,6 +145,8 @@ class ViewerWidget(QWidget):
                 Qt.TransformationMode.SmoothTransformation
             )
             self.image_label.setPixmap(scaled_pixmap)
+            """
+        self.update_scaled_pixmap()
         super().resizeEvent(event)
 
     def load_dicom_series(self, volume_data: np.ndarray):
@@ -141,8 +164,12 @@ class ViewerWidget(QWidget):
         q_image = QImage(image_data_2d.tobytes(), width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
         self.current_pixmap = QPixmap.fromImage(q_image)
         #self.image_label.setPixmap(self.current_pixmap)
+        self.pixmap_item.setPixmap(self.current_pixmap)
+        self.graphics_view.resetTransform()
+        self.graphics_view.scale(self.zoom_factor, self.zoom_factor)
+        self.graphics_view.centerOn(self.pixmap_item)
 
-        self.update_scaled_pixmap()
+        #self.update_scaled_pixmap()
 
         """
         scaled_pixmap = self.current_pixmap.scaled(
@@ -160,29 +187,9 @@ class ViewerWidget(QWidget):
         if not self.current_pixmap or self.current_pixmap.isNull():
             return
 
-        base_pixmap = self.current_pixmap
-
-        base_width = base_pixmap.width()
-        base_height = base_pixmap.height()
-
-        # Prevent crash by avoiding 0 dimensions
-        if base_width <= 0 or base_height <= 0:
-            print("Invalid pixmap size.")
-            return
-
-        scaled_width = max(1, int(base_width * self.zoom_factor))
-        scaled_height = max(1, int(base_height * self.zoom_factor))
-
-        scaled = base_pixmap.scaled(
-            scaled_width,
-            scaled_height,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-
-        self.image_label.setPixmap(scaled)
-        self.image_label.setText("")  # clear label text
-        self.image_label.move(self.pan_offset[0], self.pan_offset[1])
+        self.graphics_view.resetTransform()
+        self.graphics_view.scale(self.zoom_factor, self.zoom_factor)
+        self.graphics_view.centerOn(self.pixmap_item)
 
     def update_image(self, slice_index: int):
         """Update the displayed slice"""
@@ -276,6 +283,8 @@ class ViewerWidget(QWidget):
 
         self.update_image(self.current_slice_index)
 
+        event.accept()
+
     def set_slider(self, slider, center_slider = None, width_slider = None):
         self.slice_slider = slider
         self.center_slider = center_slider
@@ -310,11 +319,8 @@ class ViewerWidget(QWidget):
 
         elif self.is_panning and self.pan_start_pos:
             delta = event.position() - self.pan_start_pos
-            dx = delta.x()
-            dy = delta.y()
-            self.pan_offset = (self.pan_offset[0] + int(dx), self.pan_offset[1]+int(dy))
             self.pan_start_pos = event.position()
-            self.update_scaled_pixmap()
+            self.translate(delta.x(), delta.y())
 
 
     def mouseReleaseEvent(self, event):
@@ -358,7 +364,7 @@ class ViewerWidget(QWidget):
         """Hides the loading animation and shows the image label."""
         if self.loading_movie.isValid():
             self.loading_movie.stop()
-        self.main_stacked_layout.setCurrentWidget(self.image_label)
+        self.main_stacked_layout.setCurrentWidget(self.graphics_view)
 
 
     def start_cine_loop(self):
