@@ -4,9 +4,13 @@ def _build_file_menu(window, menu):
     """Constructs the File menu"""
     file_menu = menu.addMenu("File")
 
-    open_action = QAction("Open DICOM", window)
-    open_action.triggered.connect(window.open_dicom_file_func)
-    file_menu.addAction(open_action)
+    open_dicom_action = QAction("Open DICOM", window)
+    open_dicom_action.triggered.connect(window.open_dicom_file_func)
+    file_menu.addAction(open_dicom_action)
+
+    open_nifti_action = QAction("Open NIfTI", window)
+    open_nifti_action.triggered.connect(window.open_nifti_func)
+    file_menu.addAction(open_nifti_action)
 
     save_as_action = QAction("Save As Image", window)
     save_as_action.triggered.connect(window.save_current_slice_as_image)

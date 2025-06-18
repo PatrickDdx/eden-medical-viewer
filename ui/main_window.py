@@ -24,6 +24,7 @@ from ui.menu_builder import (
 
 )
 from dicom.dicom_loader_thread import start_dicom_loader
+from dicom.NIfTI_reader import NIfTIReader
 
 
 class UIMainWindow(QMainWindow):
@@ -33,7 +34,8 @@ class UIMainWindow(QMainWindow):
         self.setGeometry(110, 62, 800, 600)  # (Xpos, Ypos, width, height)
         self.setMinimumSize(800, 600)
 
-        self.reader = DicomReader()
+        self.reader_dicom = DicomReader()
+        self.reader_nifti = NIfTIReader()
 
         self.viewer_widget = ViewerWidget()
 
@@ -126,11 +128,42 @@ class UIMainWindow(QMainWindow):
 
             self.dicom_thread, self.dicom_loader = start_dicom_loader(
                 folder,
-                self.reader,
+                self.reader_dicom,
                 self._on_dicom_loading_finished,
                 self._on_dicom_loading_error
             )
 
+    def open_nifti_func(self):
+        print("open NIfTI file clicked")
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open NIfTI File", "", "NIfTI Files (*.nii);;All Files (*)")
+        print(file_path)
+        if file_path:
+            print(f"open: {file_path}")
+
+            try:
+
+                volume_data = self.reader_nifti.open_nifti(file_path)
+
+                self.viewer_widget.load_dicom_series(volume_data)
+
+                default_center = int(np.mean(volume_data))
+                default_width = int(np.max(volume_data) - np.min(volume_data))
+
+                self.viewer_widget.update_windowing(default_center, default_width)
+
+                # Update sliders accordingly
+                self.floating_controls_window.controls.slider.setMaximum(int(volume_data.shape[0] - 1))
+                self.floating_controls_window.controls.center_slider.setValue(default_center)
+                self.floating_controls_window.controls.width_slider.setValue(default_width)
+
+                self.metadata_viewer.display_metadata({}) #since NIfTI doesn't have metadata like dicom
+
+                print(f"NIfTI shape: {volume_data.shape}")
+                print(f"NIfTI range: min={np.min(volume_data)}, max={np.max(volume_data)}")
+
+
+            except Exception as e:
+                print(f"Error loading NIfTI: {e}")
 
     def save_current_slice_as_image(self):
         print("Save as clicked")
