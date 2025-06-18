@@ -171,7 +171,7 @@ def dark_theme_global_3() -> str:
             }
 
             QMenuBar::item:selected {
-                background: #444444;
+                background: #0A84FF;
             }
 
             QMenu {

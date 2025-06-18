@@ -69,6 +69,10 @@ class UIMainWindow(QMainWindow):
             self.floating_controls_window.close()
         super().closeEvent(event)
 
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        self.update_floating_window_position()
+
     def update_floating_window_position(self):
         if self.floating_controls_window:
             main_window_rect = self.geometry()
@@ -77,8 +81,8 @@ class UIMainWindow(QMainWindow):
 
             # Target X: main window's right edge - floating window's width - small margin
             # Target Y: main window's top edge + small margin
-            target_x = main_window_rect.right() - floating_window_width - int(main_window_rect.width()*0.2)
-            target_y = main_window_rect.bottom() - floating_window_height - int(main_window_rect.height()*0.2)  # Below menu bar
+            target_x = main_window_rect.right() - floating_window_width - int(main_window_rect.width()*0.15)
+            target_y = main_window_rect.bottom() - floating_window_height - int(main_window_rect.height()*0.1)  # Below menu bar
             self.floating_controls_window.move(target_x, target_y)
 
     def setup_central_layout(self):
