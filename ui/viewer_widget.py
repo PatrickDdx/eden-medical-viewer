@@ -150,11 +150,12 @@ class ViewerWidget(QWidget):
         processed = self.apply_windowing(slice_data)
         self.display_image(processed)
 
-        if hasattr(self, 'slice_slider') and self.slice_slider: #syncs the slider with the current slice if it was changed with the mouse wheel
-            if self.slice_slider.value() != slice_index:
-                self.slice_slider.blockSignals(True)
-                self.slice_slider.setValue(slice_index)
-                self.slice_slider.blockSignals(False)
+        # IMPORTANT: When the image is updated by non-slider means (e.g., cine loop, key press, wheel event),
+        # we update the slider's value directly. The slider's valueChanged signal will then trigger
+        # the DicomControls label update.
+        if self.slice_slider and self.slice_slider.value() != slice_index:
+            # NO blockSignals(True) here. We want the slider's signal to propagate to DicomControls.
+            self.slice_slider.setValue(slice_index)
 
     def update_windowing(self, center: int, width: int):
         """Update the windowing"""
@@ -163,15 +164,12 @@ class ViewerWidget(QWidget):
         self.update_image(self.current_slice_index)
 
         # Sync sliders
-        if hasattr(self, 'center_slider') and self.center_slider is not None:
-            self.center_slider.blockSignals(True)
+        # Update sliders if values were set externally (e.g., by default windowing, preset)
+        # NO blockSignals(True) here. We want the slider's signal to propagate to DicomControls.
+        if self.center_slider and self.center_slider.value() != center:
             self.center_slider.setValue(center)
-            self.center_slider.blockSignals(False)
-
-        if hasattr(self, 'width_slider') and self.width_slider is not None:
-            self.width_slider.blockSignals(True)
+        if self.width_slider and self.width_slider.value() != width:
             self.width_slider.setValue(width)
-            self.width_slider.blockSignals(False)
 
     def apply_windowing(self, img: np.ndarray) -> np.ndarray:
         lower_bound = self.window_center - (self.window_width / 2)

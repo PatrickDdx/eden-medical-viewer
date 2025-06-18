@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import os
 
+from ui.floating_tool_bar import FloatingControlsWindow
 from ui.metadata_widget import DicomMetadataViewer
 from ui.viewer_widget import ViewerWidget
 from dicom.dicom_reader import DicomReader
@@ -18,7 +19,9 @@ from ui.menu_builder import (
     _build_windowing_menu,
     _build_ai_menu,
     _build_view_menu,
-    _build_help_menu,
+    _build_tools_menu,
+    _build_help_menu
+
 )
 from dicom.dicom_loader_thread import start_dicom_loader
 
@@ -33,13 +36,16 @@ class UIMainWindow(QMainWindow):
         self.reader = DicomReader()
 
         self.viewer_widget = ViewerWidget()
-        #self.setCentralWidget(self.viewer_widget)
 
-        self.controls = DicomControls(self.viewer_widget)
-        self.viewer_widget.set_slider(self.controls.slider,
-                                      center_slider=self.controls.center_slider,
-                                      width_slider=self.controls.width_slider
+        self.floating_controls_window = FloatingControlsWindow(self.viewer_widget)
+        # Ensure the viewer widget in the main window gets the sliders from the floating controls
+        # We need to access the controls instance inside the floating window
+        self.viewer_widget.set_slider(self.floating_controls_window.controls.slider,
+                                      center_slider=self.floating_controls_window.controls.center_slider,
+                                      width_slider=self.floating_controls_window.controls.width_slider
                                       )
+        self.floating_controls_window.show()
+        self.update_floating_window_position()
 
         self.setup_central_layout()
 
@@ -51,8 +57,29 @@ class UIMainWindow(QMainWindow):
         self.metadata_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.metadata_dock)
 
-        #set dark theme
-        self.setStyleSheet(dark_theme())
+    def resizeEvent(self, event):
+        """Override resize event to reposition floating window."""
+        super().resizeEvent(event)
+        self.update_floating_window_position()
+
+    def closeEvent(self, event):
+        """Called when the main window is about to close
+        Ensures the floating control window is also closed"""
+        if self.floating_controls_window:
+            self.floating_controls_window.close()
+        super().closeEvent(event)
+
+    def update_floating_window_position(self):
+        if self.floating_controls_window:
+            main_window_rect = self.geometry()
+            floating_window_width = self.floating_controls_window.width()
+            floating_window_height = self.floating_controls_window.height()
+
+            # Target X: main window's right edge - floating window's width - small margin
+            # Target Y: main window's top edge + small margin
+            target_x = main_window_rect.right() - floating_window_width - int(main_window_rect.width()*0.2)
+            target_y = main_window_rect.bottom() - floating_window_height - int(main_window_rect.height()*0.2)  # Below menu bar
+            self.floating_controls_window.move(target_x, target_y)
 
     def setup_central_layout(self):
         """Creates a central widget with layout for viewer and controls"""
@@ -60,11 +87,10 @@ class UIMainWindow(QMainWindow):
         layout = QVBoxLayout()
 
         layout.addWidget(self.viewer_widget)
-        layout.addWidget(self.controls)
+       # layout.addWidget(self.controls)
 
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
-
 
     def setupMenuBar(self):
         """Creates the Menu Bar with the functions defined in 'menu_builder.py'"""
@@ -75,8 +101,12 @@ class UIMainWindow(QMainWindow):
         _build_windowing_menu(self, menu)
         _build_ai_menu(self, menu)
         _build_view_menu(self, menu)
+        _build_tools_menu(self, menu)
         _build_help_menu(self, menu)
 
+    def toggle_floating_controls(self, checked):
+        self.floating_controls_window.setVisible(checked)
+        print(f"Floating controls visibility toggled to {checked}")
 
     def open_dicom_file_func(self):
 
@@ -138,9 +168,9 @@ class UIMainWindow(QMainWindow):
         self.viewer_widget.load_dicom_series(volume)
         self.viewer_widget.update_windowing(default_center, default_width)
         self.metadata_viewer.display_metadata(metadata_dict)
-        self.controls.slider.setMaximum(volume.shape[0] - 1)
-        self.controls.center_slider.setValue(default_center)
-        self.controls.width_slider.setValue(default_width)
+        self.floating_controls_window.controls.slider.setMaximum(volume.shape[0] - 1)
+        self.floating_controls_window.controls.center_slider.setValue(default_center)
+        self.floating_controls_window.controls.width_slider.setValue(default_width)
 
     def _on_dicom_loading_error(self, error_message):
         print(f"DICOM loading error (UI thread): {error_message}")

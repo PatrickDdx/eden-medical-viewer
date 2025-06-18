@@ -55,5 +55,12 @@ def _build_view_menu(window, menu):
     slower_cine.triggered.connect(window.viewer_widget.decrease_cine_speed)
     view_menu.addAction(slower_cine)
 
+def _build_tools_menu(window, menu):
+    tools_menu = menu.addMenu("Tools")
+
+    toggle_floating_controls = QAction("Floating Controls", window)
+    toggle_floating_controls.triggered.connect(lambda x: window.toggle_floating_controls(True))
+    tools_menu.addAction(toggle_floating_controls)
+
 def _build_help_menu(window, menu):
     help_menu = menu.addMenu("Help")
