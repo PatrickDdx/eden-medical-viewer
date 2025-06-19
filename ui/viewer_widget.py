@@ -1,10 +1,8 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout, QFileDialog, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QStandardPaths, QDir
 from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter
 import numpy as np
-import cv2
 
-from dicom.data_manager import DataSaver
 from ui.graphics_view import CustomGraphicsView
 from dicom.data_manager import DataSaver
 

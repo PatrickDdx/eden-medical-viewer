@@ -3,6 +3,13 @@ from PyQt6.QtCore import Qt, QTimer, QPointF
 from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter, QTransform
 import numpy as np
 import cv2
+from enum import Enum
+
+class InteractionMode(Enum):
+    NONE = 0
+    PAN = 1
+    WINDOWING = 2
+
 
 class CustomGraphicsView(QGraphicsView):
     def __init__(self, parent=None):
@@ -11,30 +18,37 @@ class CustomGraphicsView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setBackgroundBrush(Qt.GlobalColor.black)
 
-        # Disable default scrollbars and drag mode for custom handling
-        # disable scrollbars so the image doesn't shift on wheel events
+        # Disable scrollbars to prevent image shifting during zoom/pan
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setDragMode(QGraphicsView.DragMode.NoDrag)  # We will implement our own drag
 
         self.viewer_widget = parent if isinstance(parent, QWidget) else None # Reference to the parent ViewerWidget
 
-        self._panning = False
+        self._mode = InteractionMode.NONE
+
         self._pan_start_mouse_pos = QPointF()
 
-        self._windowing = False
         self._window_start_mouse_pos = QPointF()
         self._start_window_center = 0
         self._start_window_width = 0
 
+        self.sensitivity = 1
+
+    #def enterEvent(self, event):
+    #    self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+    #def leaveEvent(self, event):
+    #    self.setCursor(Qt.CursorShape.ArrowCursor)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self._panning = True
+            self._mode = InteractionMode.PAN
             self._pan_start_mouse_pos = event.position()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
             event.accept()  # Accept the event to prevent further propagation
         elif event.button() == Qt.MouseButton.RightButton:
-            self._windowing = True
+            self._mode = InteractionMode.WINDOWING
             self._window_start_mouse_pos = event.position()
             # Store initial windowing values from the ViewerWidget
             if self.viewer_widget:
@@ -46,21 +60,20 @@ class CustomGraphicsView(QGraphicsView):
             super().mousePressEvent(event)  # Pass other button events to default handler
 
     def mouseMoveEvent(self, event):
-        if self._panning:
+        if self._mode == InteractionMode.PAN:
             delta = event.position() - self._pan_start_mouse_pos
             # Translate the view, not the item. QGraphicsView handles this by translating its transformation matrix.
             self.translate(delta.x(), delta.y())
             self._pan_start_mouse_pos = event.position()  # Update start position for continuous pan
             event.accept()
-        elif self._windowing:
+        elif self._mode == InteractionMode.WINDOWING:
             delta = event.position() - self._window_start_mouse_pos
             dx = delta.x()
             dy = delta.y()
 
-            sensitivity = 1
             # Calculate new window center and width based on mouse movement
-            new_center = self._start_window_center + int(dy * sensitivity)  # Adjust sensitivity as needed
-            new_width = self._start_window_width + int(dx * sensitivity)  # Adjust sensitivity as needed
+            new_center = self._start_window_center + int(dx * self.sensitivity)  # Adjust self.sensitivity as needed
+            new_width = self._start_window_width + int(dy * self.sensitivity)  # Adjust self.sensitivity as needed
 
             new_width = max(1, new_width)  # Ensure width is at least 1 to avoid division by zero
 
@@ -72,11 +85,11 @@ class CustomGraphicsView(QGraphicsView):
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self._panning = False
+            self._mode = InteractionMode.NONE
             self.setCursor(Qt.CursorShape.ArrowCursor)
             event.accept()
         elif event.button() == Qt.MouseButton.RightButton:
-            self._windowing = False
+            self._mode = InteractionMode.NONE
             self.setCursor(Qt.CursorShape.ArrowCursor)
             event.accept()
         else:
