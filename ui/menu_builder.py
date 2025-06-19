@@ -24,6 +24,11 @@ def _build_file_menu(window, menu):
     exit_action.triggered.connect(window.close_application)
     file_menu.addAction(exit_action)
 
+    #this is a dummy for "save as" + "dicom"/"nifti" to test the functions. i want a pop up window later for saving and a selection which file format to save as
+    save_as_dummy = QAction("Save as dummy", window)
+    save_as_dummy.triggered.connect(window.save_as_dicom)
+    file_menu.addAction(save_as_dummy)
+
 def _build_windowing_menu(window, menu):
     window_presets_menu = menu.addMenu("Windowing")
 

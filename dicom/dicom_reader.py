@@ -65,7 +65,7 @@ class DicomReader():
         total_time = end_time - start_time
         print(f"{total_time} seconds needed to open {len(files)} DICOM files in {folder_path}")
 
-        return volume, window_center, window_width, metadata
+        return volume, window_center, window_width, metadata, list(sorted_datasets)
 
     def get_metadata(self, ds):
         """Extracts metadata from dicom data"""

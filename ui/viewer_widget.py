@@ -4,7 +4,9 @@ from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter
 import numpy as np
 import cv2
 
+from dicom.data_manager import DataSaver
 from ui.graphics_view import CustomGraphicsView
+from dicom.data_manager import DataSaver
 
 def calculate_distance(width, level, x_predefined, y_predefined):
   distance = np.sqrt((width-x_predefined)**2+(level-y_predefined)**2)
@@ -12,8 +14,10 @@ def calculate_distance(width, level, x_predefined, y_predefined):
   return distance
 
 class ViewerWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, data_manager: DataSaver = None):
+        super().__init__()
+
+        self.data_manager = data_manager
 
         self.graphics_view = CustomGraphicsView(self)
         self.scene = QGraphicsScene()
@@ -89,34 +93,6 @@ class ViewerWidget(QWidget):
             Qt.Key.Key_4: "Bone"
         }
 
-    def setup_loading_animation(self):
-        # --- Loading Animation Setup ---
-        self.loading_animation_label = QLabel(self)
-        self.loading_animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        #self.loading_animation_label.hide()  # Hide initially
-
-        self.loading_movie = QMovie(
-            "C:/Users/patri/GIT/dicomViewer/assets/animations/Ripple@1x-1.0s-200px-200px.gif")  # Adjust path as needed
-        if self.loading_movie.isValid():
-            self.loading_animation_label.setMovie(self.loading_movie)
-        else:
-            print("Warning: Loading GIF not found or invalid. Using text placeholder.")
-            self.loading_animation_label.setText("Loading...")
-            self.loading_animation_label.setStyleSheet("color: white;")  # Example style
-
-        # Add a placeholder label for loading text
-        self.loading_text_label = QLabel("Loading DICOM files, please wait...", self)
-        self.loading_text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.loading_text_label.setStyleSheet("color: white;")
-        #self.loading_text_label.hide()
-
-        self.loading_container = QWidget()
-        loading_layout = QVBoxLayout()
-        loading_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        loading_layout.addWidget(self.loading_animation_label)
-        loading_layout.addWidget(self.loading_text_label)
-        self.loading_container.setLayout(loading_layout)
-        self.loading_container.hide()
 
     def resizeEvent(self, event):
         # When the viewer resizes, ensure the image fits properly
@@ -127,6 +103,8 @@ class ViewerWidget(QWidget):
     def load_dicom_series(self, volume_data: np.ndarray):
         """Takes a 3D NumPy array and sets up the viewer."""
         self.dicom_slices = volume_data
+        if self.data_manager:
+            self.data_manager.volume_data = volume_data
         self.current_slice_index = 0
         #self.update_image(self.current_slice_index) #-> the image gets updated (and therefore windowed) when loading initially from the main Window
 
@@ -257,16 +235,37 @@ class ViewerWidget(QWidget):
 
         super().keyPressEvent(event)
 
-    def save_current_slice(self, filepath: str):
-        """Saves the current pixmap (from image_display) to a file
-         :param filepath: Full file path including extension (e.g., 'output.png' or 'output.jpg')
-         """
-        if self.current_pixmap is not None:
-            success = self.current_pixmap.save(filepath)
-            if not success:
-                print(f"Failed to save image to {filepath}")
-            else:
-                print(f"Image saved to {filepath}")
+
+####################################################### Loading animation
+
+    def setup_loading_animation(self):
+        # --- Loading Animation Setup ---
+        self.loading_animation_label = QLabel(self)
+        self.loading_animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        #self.loading_animation_label.hide()  # Hide initially
+
+        self.loading_movie = QMovie(
+            "C:/Users/patri/GIT/dicomViewer/assets/animations/Ripple@1x-1.0s-200px-200px.gif")  # Adjust path as needed
+        if self.loading_movie.isValid():
+            self.loading_animation_label.setMovie(self.loading_movie)
+        else:
+            print("Warning: Loading GIF not found or invalid. Using text placeholder.")
+            self.loading_animation_label.setText("Loading...")
+            self.loading_animation_label.setStyleSheet("color: white;")  # Example style
+
+        # Add a placeholder label for loading text
+        self.loading_text_label = QLabel("Loading DICOM files, please wait...", self)
+        self.loading_text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loading_text_label.setStyleSheet("color: white;")
+        #self.loading_text_label.hide()
+
+        self.loading_container = QWidget()
+        loading_layout = QVBoxLayout()
+        loading_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        loading_layout.addWidget(self.loading_animation_label)
+        loading_layout.addWidget(self.loading_text_label)
+        self.loading_container.setLayout(loading_layout)
+        self.loading_container.hide()
 
     def show_loading_animation(self):
         """Shows the loading animation and hides the image label."""
@@ -281,6 +280,8 @@ class ViewerWidget(QWidget):
             self.loading_movie.stop()
         self.main_stacked_layout.setCurrentWidget(self.graphics_view)
 
+
+##################################################### Cine loop functions
 
     def start_cine_loop(self):
         if self.dicom_slices is None:
@@ -314,40 +315,13 @@ class ViewerWidget(QWidget):
         if self.is_cine_playing:
             self.cine_timer.start(self.cine_interval)
 
+###################################################################################
+
     def normalize_to_uint8(self, image):
         img = np.clip(image, np.min(image), np.max(image))
         img = (img-img.min()) / (img.max() - img.min()) * 255
         return  img.astype(np.uint8)
 
-    def export_as_mp4(self, file_path):
-        print("Starting export_as_mp4")
-
-        if self.dicom_slices is None:
-            print("No dicom_slices loaded")
-            return
-
-        if not file_path.lower().endswith(".mp4"):
-            file_path += ".mp4"
-
-        print(f"Saving to: {file_path}")
-        print(f"cine_interval: {self.cine_interval}")
-
-        height, width = self.dicom_slices[0].shape
-        fps = 1000 // self.cine_interval if self.cine_interval > 0 else 10
-        print(f"Video dimensions: {width}x{height}, FPS: {fps}")
-
-        import cv2  # <- make sure OpenCV is imported at the top
-
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        writer = cv2.VideoWriter(file_path, fourcc, fps, (width, height))
-
-        for i in range(self.dicom_slices.shape[0]):
-            img = self.apply_windowing(self.dicom_slices[i])
-            frame = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-            writer.write(frame)
-
-        writer.release()
-        print(f"Export complete: {file_path}")
 
     def find_nearest_neighbor(self, current_width, current_level):
         """Finds the nearest predefined window preset to a given (width, level) point"""
@@ -371,5 +345,22 @@ class ViewerWidget(QWidget):
 
         return closest_window_name
 
+######################################## Saving functions
+    def save_current_slice_ui(self, filepath: str):
+        """UI-level method to trigger saving of the currently displayed image."""
+        self.data_manager.save_current_slice(self.current_pixmap, filepath)
 
+    def save_as_dicom_ui(self, directory_path: str, original_dicom_headers: list = None):
+        self.data_manager.save_as_dicom(
+            self.data_manager.volume_data,
+            original_dicom_headers,
+            directory_path
+        )
+
+    def save_as_nifti_ui(self):
+        pass
+
+    def export_as_mp4_ui(self, file_path):
+        self.data_manager.save_as_mp4(file_path, self.cine_interval, self.window_width, self.window_center)
+        print(f"width: {self.window_width}, level: {self.window_center}")
 

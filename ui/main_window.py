@@ -26,6 +26,7 @@ from ui.menu_builder import (
 )
 from dicom.dicom_loader_thread import start_dicom_loader
 from dicom.NIfTI_reader import NIfTIReader
+from dicom.data_manager import DataSaver
 
 
 class UIMainWindow(QMainWindow):
@@ -38,7 +39,9 @@ class UIMainWindow(QMainWindow):
         self.reader_dicom = DicomReader()
         self.reader_nifti = NIfTIReader()
 
-        self.viewer_widget = ViewerWidget()
+        self.data_manager = DataSaver()
+
+        self.viewer_widget = ViewerWidget(data_manager = self.data_manager)
 
         self.floating_controls_window = FloatingControlsWindow(self.viewer_widget)
         # Ensure the viewer widget in the main window gets the sliders from the floating controls
@@ -59,6 +62,9 @@ class UIMainWindow(QMainWindow):
         self.metadata_dock.setWidget(self.metadata_viewer)
         self.metadata_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.metadata_dock)
+
+        self.original_dicom_headers = None
+        self.nifti_affine_matrix = None
 
     def resizeEvent(self, event):
         """Override resize event to reposition floating window."""
@@ -94,7 +100,6 @@ class UIMainWindow(QMainWindow):
         layout = QVBoxLayout()
 
         layout.addWidget(self.viewer_widget)
-       # layout.addWidget(self.controls)
 
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
@@ -157,9 +162,28 @@ class UIMainWindow(QMainWindow):
         file_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", "", "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (.bmp);;All Files (*)")
 
         if file_path:
-            self.viewer_widget.save_current_slice(file_path)
+            self.viewer_widget.save_current_slice_ui(file_path)
         else:
             print("Save cancelled")
+
+    def save_as_dicom(self):
+        print("Save dicom clicked")
+        if self.data_manager.volume_data is None:
+            print("No Data")
+            return
+        if self.original_dicom_headers is None or not self.original_dicom_headers:
+            print("Missing Data: header")
+            return
+
+        directory = QFileDialog.getExistingDirectory(self, "Select Directory to Save DICOM Series")
+
+        if directory:
+            self.viewer_widget.save_as_dicom_ui(directory, self.original_dicom_headers)
+        else:
+            print("Dicom saving cancelled")
+
+    def save_as_nifti(self):
+        pass
 
     def save_as_mp4(self):
         print("save as mp4 clicked")
@@ -167,7 +191,7 @@ class UIMainWindow(QMainWindow):
 
         if file_path:
             try:
-                self.viewer_widget.export_as_mp4(file_path)
+                self.viewer_widget.export_as_mp4_ui(file_path)
                 print("MP4 export completed successfully.")
             except Exception as e:
                 print(f"MP4 export failed: {e}")
@@ -183,10 +207,12 @@ class UIMainWindow(QMainWindow):
         self.close()
 
 
-    def _on_dicom_loading_finished(self, volume, center, width, metadata):
+    def _on_dicom_loading_finished(self, volume, center, width, metadata, original_dicom_headers):
+        self.original_dicom_headers = original_dicom_headers
         self._on_volume_loaded(volume, center, width, metadata)
 
-    def _on_nifti_loading_finished(self, volume, center, width):
+    def _on_nifti_loading_finished(self, volume, center, width, affine_matrix = None):
+        self.nifti_affine_matrix = affine_matrix
         self._on_volume_loaded(volume, center, width)
 
     def _on_volume_loaded(self, volume, default_center, default_width, metadata_dict=None):
