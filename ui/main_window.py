@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import os
 
+from dicom.NIfTI_loader_thread import start_nifti_loader
 from ui.floating_tool_bar import FloatingControlsWindow
 from ui.metadata_widget import DicomMetadataViewer
 from ui.viewer_widget import ViewerWidget
@@ -130,7 +131,7 @@ class UIMainWindow(QMainWindow):
                 folder,
                 self.reader_dicom,
                 self._on_dicom_loading_finished,
-                self._on_dicom_loading_error
+                self._on_volume_loading_error
             )
 
     def open_nifti_func(self):
@@ -140,30 +141,16 @@ class UIMainWindow(QMainWindow):
         if file_path:
             print(f"open: {file_path}")
 
-            try:
+            self.viewer_widget.show_loading_animation()
 
-                volume_data = self.reader_nifti.open_nifti(file_path)
+            self.setEnabled(False)
 
-                self.viewer_widget.load_dicom_series(volume_data)
-
-                default_center = int(np.mean(volume_data))
-                default_width = int(np.max(volume_data) - np.min(volume_data))
-
-                self.viewer_widget.update_windowing(default_center, default_width)
-
-                # Update sliders accordingly
-                self.floating_controls_window.controls.slider.setMaximum(int(volume_data.shape[0] - 1))
-                self.floating_controls_window.controls.center_slider.setValue(default_center)
-                self.floating_controls_window.controls.width_slider.setValue(default_width)
-
-                self.metadata_viewer.display_metadata({}) #since NIfTI doesn't have metadata like dicom
-
-                print(f"NIfTI shape: {volume_data.shape}")
-                print(f"NIfTI range: min={np.min(volume_data)}, max={np.max(volume_data)}")
-
-
-            except Exception as e:
-                print(f"Error loading NIfTI: {e}")
+            self.nifti_thrad, self.nift_loader = start_nifti_loader(
+                file_path,
+                self.reader_nifti,
+                self._on_nifti_loading_finished,
+                self._on_volume_loading_error
+            )
 
     def save_current_slice_as_image(self):
         print("Save as clicked")
@@ -195,7 +182,14 @@ class UIMainWindow(QMainWindow):
     def close_application(self):
         self.close()
 
-    def _on_dicom_loading_finished(self, volume, default_center, default_width, metadata_dict):
+
+    def _on_dicom_loading_finished(self, volume, center, width, metadata):
+        self._on_volume_loaded(volume, center, width, metadata)
+
+    def _on_nifti_loading_finished(self, volume, center, width):
+        self._on_volume_loaded(volume, center, width)
+
+    def _on_volume_loaded(self, volume, default_center, default_width, metadata_dict=None):
         print("DICOM loading finished (UI thread)")
         self.viewer_widget.hide_loading_animation()
         # Re-enable main window interaction
@@ -204,12 +198,17 @@ class UIMainWindow(QMainWindow):
         # Update your UI with the loaded data
         self.viewer_widget.load_dicom_series(volume)
         self.viewer_widget.update_windowing(default_center, default_width)
+
+        if metadata_dict is None:
+            metadata_dict = {}
         self.metadata_viewer.display_metadata(metadata_dict)
+
+        #Set the control sliders
         self.floating_controls_window.controls.slider.setMaximum(volume.shape[0] - 1)
         self.floating_controls_window.controls.center_slider.setValue(default_center)
         self.floating_controls_window.controls.width_slider.setValue(default_width)
 
-    def _on_dicom_loading_error(self, error_message):
+    def _on_volume_loading_error(self, error_message):
         print(f"DICOM loading error (UI thread): {error_message}")
         # Hide and clean up the loading animation
         self.viewer_widget.hide_loading_animation()
