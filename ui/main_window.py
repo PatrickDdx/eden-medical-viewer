@@ -117,11 +117,12 @@ class UIMainWindow(QMainWindow):
         _build_help_menu(self, menu)
 
     def toggle_floating_controls(self, checked):
+        """Makes the floating control window visible"""
         self.floating_controls_window.setVisible(checked)
         print(f"Floating controls visibility toggled to {checked}")
 
     def open_dicom_file_func(self):
-
+        """Open a DICOM file via QFileDialog and start threaded loading"""
         print("open DICOM file clicked")
         file_path, _ = QFileDialog.getOpenFileName(self, "Open DICOM File", "", "DICOM Files (*.dcm);;All Files (*)")
         print(file_path)
@@ -140,6 +141,7 @@ class UIMainWindow(QMainWindow):
             )
 
     def open_nifti_func(self):
+        """Open a NIfTI file via QFileDialog and start threaded loading"""
         print("open NIfTI file clicked")
         file_path, _ = QFileDialog.getOpenFileName(self, "Open NIfTI File", "", "NIfTI Files (*.nii);;All Files (*)")
         print(file_path)
@@ -148,9 +150,7 @@ class UIMainWindow(QMainWindow):
 
             self.viewer_widget.show_loading_animation()
 
-            self.setEnabled(False)
-
-            self.nifti_thrad, self.nift_loader = start_nifti_loader(
+            self.nifti_thread, self.nifti_loader = start_nifti_loader(
                 file_path,
                 self.reader_nifti,
                 self._on_nifti_loading_finished,
@@ -158,6 +158,7 @@ class UIMainWindow(QMainWindow):
             )
 
     def save_current_slice_as_image(self):
+        """Saves the current slice via the QFileDialog"""
         print("Save as clicked")
         file_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", "", "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (.bmp);;All Files (*)")
 
@@ -167,6 +168,7 @@ class UIMainWindow(QMainWindow):
             print("Save cancelled")
 
     def save_as_dicom(self):
+        """Saves the current DICOM via the QFileDialog"""
         print("Save dicom clicked")
         if self.data_manager.volume_data is None:
             print("No Data")
@@ -183,9 +185,11 @@ class UIMainWindow(QMainWindow):
             print("Dicom saving cancelled")
 
     def save_as_nifti(self):
+        """Saves the current NIfTI via the QFileDialog"""
         pass
 
     def save_as_mp4(self):
+        """Saves the current image data as MP4 via the QFileDialog"""
         print("save as mp4 clicked")
         file_path, _ = QFileDialog.getSaveFileName(self, "Export as MP4", "", "MP4 Video (*.mp4)")
 
@@ -199,13 +203,14 @@ class UIMainWindow(QMainWindow):
             print("Save cancelled")
 
     def load_ai_model(self):
+        """Loads an AI Model - at least later ;)"""
         model_path, _ = QFileDialog.getOpenFileName(self, "Load AI Model", "", "Model Files (*.h5 *pth *pkl *onnx *pb *tflite *keras *joblib *pmml);;All Files (*)")
         if model_path:
             print(f"loading following model: {model_path}")
 
     def close_application(self):
+        """Closes the application"""
         self.close()
-
 
     def _on_dicom_loading_finished(self, volume, center, width, metadata, original_dicom_headers):
         self.original_dicom_headers = original_dicom_headers
