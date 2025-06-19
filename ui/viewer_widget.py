@@ -6,6 +6,10 @@ import cv2
 
 from ui.graphics_view import CustomGraphicsView
 
+def calculate_distance(width, level, x_predefined, y_predefined):
+  distance = np.sqrt((width-x_predefined)**2+(level-y_predefined)**2)
+
+  return distance
 
 class ViewerWidget(QWidget):
     def __init__(self, parent=None):
@@ -57,32 +61,32 @@ class ViewerWidget(QWidget):
 
         self.window_presets = {
             #head and neck
-            "brain": {"width": 80, "level": 40},
-            "subdural": {"width": 130, "level": 50},
-            "stroke": {"width": 8, "level": 32},
-            "temporal bones": {"width": 2800, "level": 600},
+            "Brain": {"width": 80, "level": 40},
+            "Subdural": {"width": 130, "level": 50},
+            "Stroke": {"width": 8, "level": 32},
+            "Temporal bones": {"width": 2800, "level": 600},
             #"soft tissues": {"width": 350, "level": 20},
 
             #chest
-            "lungs": {"width": 1500, "level": -600},
-            "mediastinum": {"width": 350, "level": 50},
-            "vascular/heart": {"width": 600, "level": 200},
+            "Lungs": {"width": 1500, "level": -600},
+            "Mediastinum": {"width": 350, "level": 50},
+            "Vascular/heart": {"width": 600, "level": 200},
 
             #abdomen
-            "soft tissues": {"width": 400, "level": 50},
-            "liver": {"width": 150, "level": 30},
+            "Soft tissues": {"width": 400, "level": 50},
+            "Liver": {"width": 150, "level": 30},
 
             #spine
             #"soft tissues": {"width": 250, "level": 50},
-            "bone": {"width": 1800, "level": 400},
+            "Bone": {"width": 1800, "level": 400},
 
         }
 
         self.window_keys = {
-            Qt.Key.Key_1: "brain",
-            Qt.Key.Key_2: "lungs",
-            Qt.Key.Key_3: "soft tissues",
-            Qt.Key.Key_4: "bone"
+            Qt.Key.Key_1: "Brain",
+            Qt.Key.Key_2: "Lungs",
+            Qt.Key.Key_3: "Soft tissues",
+            Qt.Key.Key_4: "Bone"
         }
 
     def setup_loading_animation(self):
@@ -345,7 +349,27 @@ class ViewerWidget(QWidget):
         writer.release()
         print(f"Export complete: {file_path}")
 
+    def find_nearest_neighbor(self, current_width, current_level):
+        """Finds the nearest predefined window preset to a given (width, level) point"""
 
+        if self.current_pixmap is None:
+            return "N/A"
+
+        closest_window_name = None
+
+        names = []
+        distances_to_preset = []
+
+        for key in self.window_presets:
+            dist = calculate_distance(current_width, current_level, self.window_presets[key]["width"], self.window_presets[key]["level"])
+            names.append(key)
+            distances_to_preset.append(dist)
+
+        min_idx = np.argmin(distances_to_preset)
+        closest_window_name = names[min_idx]
+        #print(f"nearest predefined window is: {names[min_idx]} ; distance: {distances_to_preset[min_idx]}")
+
+        return closest_window_name
 
 
 

@@ -1,5 +1,7 @@
 from PyQt6.QtWidgets import QSlider, QWidget, QVBoxLayout, QLabel, QGridLayout
 from PyQt6.QtCore import Qt
+from Tools.scripts.dutree import display
+
 
 class SliceSlider(QSlider):
     def __init__(self):
@@ -39,6 +41,10 @@ class DicomControls(QWidget):
         self.slice_value_label = QLabel("0/0")
         self.center_value_label = QLabel("0")
         self.width_value_label = QLabel("1")
+
+        #Label for nearest neighbor (preset window)
+        self.nearest_neighbor_label = QLabel("Nearest Window: N/A")
+        #self.nearest_neighbor_label.setStyleSheet("font-weight: bold;")
 
         # slider to change the current slice
         self.slider = SliceSlider()
@@ -81,7 +87,11 @@ class DicomControls(QWidget):
         grid_layout.addWidget(self.width_value_label, 4, 1, Qt.AlignmentFlag.AlignRight)
         grid_layout.addWidget(self.width_slider, 5, 0, 1, 2)
 
+        grid_layout.addWidget(self.nearest_neighbor_label, 6, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
+
         self.setLayout(grid_layout)
+
+        self.update_nearest_neighbor_display()
 
     def update_image_from_slider(self, value):
         self.canvas.update_image(value)   #########??????????
@@ -91,3 +101,23 @@ class DicomControls(QWidget):
         new_center = self.center_slider.value()
         new_width = self.width_slider.value()
         self.canvas.update_windowing(new_center, new_width)
+
+        self.update_nearest_neighbor_display()
+
+    def update_nearest_neighbor_display(self):
+        """Calculates the nearest window preset based on current width/level and updates the display"""
+
+
+        current_width = self.width_slider.value()
+        current_level= self.center_slider.value()
+
+        result = self.canvas.find_nearest_neighbor(current_width, current_level)
+
+        if result:
+            display_text = (
+                f"Nearest Window: {result}"
+            )
+        else:
+            display_text = "N/A"
+
+        self.nearest_neighbor_label.setText(display_text)
