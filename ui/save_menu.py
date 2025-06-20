@@ -3,7 +3,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
 from PyQt6.QtWidgets import (
     QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget,
     QDockWidget, QProgressDialog, QMessageBox, QLabel, QDialog,
-    QComboBox, QPushButton, QLineEdit, QHBoxLayout, QFormLayout
+    QComboBox, QPushButton, QLineEdit, QHBoxLayout, QFormLayout, QFrame
 )
 from PyQt6.QtGui import QAction
 from PyQt6.QtGui import QMovie
@@ -11,13 +11,13 @@ import sys
 import numpy as np
 import os
 
-from dicom.NIfTI_loader_thread import start_nifti_loader
+from image_data_handling.NIfTI_loader_thread import start_nifti_loader
 from ui.floating_tool_bar import FloatingControlsWindow
 from ui.metadata_widget import DicomMetadataViewer
 from ui.viewer_widget import ViewerWidget
-from dicom.dicom_reader import DicomReader
+from image_data_handling.dicom_reader import DicomReader
 from ui.controls import DicomControls
-from dicom.dicom_loader import DicomLoader
+from image_data_handling.dicom_loader import DicomLoader
 from ui.stylesheets import dark_theme
 from ui.menu_builder import (
     _build_file_menu,
@@ -28,9 +28,9 @@ from ui.menu_builder import (
     _build_help_menu
 
 )
-from dicom.dicom_loader_thread import start_dicom_loader
-from dicom.NIfTI_reader import NIfTIReader
-from dicom.data_manager import DataSaver
+from image_data_handling.dicom_loader_thread import start_dicom_loader
+from image_data_handling.NIfTI_reader import NIfTIReader
+from image_data_handling.data_manager import VolumeDataManager
 
 class SaveDialog(QDialog):
 
@@ -44,15 +44,21 @@ class SaveDialog(QDialog):
         self.setMinimumSize(400, 200)
 
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+        #self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         self.init_ui()
 
     def init_ui(self):
-        # Main layout for the dialog
-        main_layout = QVBoxLayout(self)
+        # Main frame for styling the dialog background and border
+        # This acts like the FloatingControlsFrame
+        self.main_frame = QFrame(self)
+        self.main_frame.setObjectName("SaveDialogFrame")  # Object name for CSS styling
+        self.main_frame.setLayout(QVBoxLayout())
+        self.main_frame.layout().setContentsMargins(20, 20, 20, 20)  # Add padding inside the frame
 
         # form layout for labels and input fields
         form_layout = QFormLayout()
+        form_layout.setVerticalSpacing(15)  # Add vertical spacing between form rows
 
         # 1. Format selection
         self.format_label = QLabel("Select Format:")
@@ -72,6 +78,7 @@ class SaveDialog(QDialog):
         self.path_line_edit.setReadOnly(True) #-> only browse button can change it
 
         self.browse_button = QPushButton("Browse...")
+        self.browse_button.setObjectName("BrowseButton")  # Specific object name for styling
         self.browse_button.clicked.connect(self.browse_save_location)
 
         path_layout = QHBoxLayout()
@@ -79,22 +86,28 @@ class SaveDialog(QDialog):
         path_layout.addWidget(self.browse_button)
         form_layout.addRow(self.path_label, path_layout)
 
-        main_layout.addLayout(form_layout)
+        self.main_frame.layout().addLayout(form_layout)
 
         # Buttons (Save, Cancel)
         button_layout = QHBoxLayout()
         self.save_button = QPushButton("Save")
+        self.save_button.setObjectName("SaveActionButton")  # Specific object name for styling
         self.save_button.clicked.connect(self.accept_save)
         self.save_button.setEnabled(False) # disable until a path is selected
 
         self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.setObjectName("CancelButton")
         self.cancel_button.clicked.connect(self.reject)
 
         button_layout.addStretch(1) #pushes buttons to the right
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.cancel_button)
 
-        main_layout.addLayout(button_layout)
+        self.main_frame.layout().addLayout(button_layout)
+
+        window_layout = QVBoxLayout(self)
+        window_layout.addWidget(self.main_frame)
+        window_layout.setContentsMargins(0,0,0,0) # Remove default window margins
 
         self.update_file_path_placeholder()
 
@@ -155,7 +168,7 @@ class SaveDialog(QDialog):
             self.save_requested.emit(selected_format, file_path)
             self.accept()  # Close the dialog
         else:
-            QMessageBox.warning(self, "No Save Location", "Please select a save location.")
+            print("No Save Location. Please select a save location.")
 
 
 

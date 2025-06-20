@@ -4,7 +4,7 @@ from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter
 import numpy as np
 
 from ui.graphics_view import CustomGraphicsView
-from dicom.data_manager import DataSaver
+from image_data_handling.data_manager import VolumeDataManager
 
 def calculate_distance(width, level, x_predefined, y_predefined):
   distance = np.sqrt((width-x_predefined)**2+(level-y_predefined)**2)
@@ -12,7 +12,7 @@ def calculate_distance(width, level, x_predefined, y_predefined):
   return distance
 
 class ViewerWidget(QWidget):
-    def __init__(self, data_manager: DataSaver = None):
+    def __init__(self, data_manager: VolumeDataManager = None):
         super().__init__()
 
         self.data_manager = data_manager
@@ -362,7 +362,7 @@ class ViewerWidget(QWidget):
 ######################################## Saving functions
     def save_current_slice_ui(self, filepath: str):
         """UI-level method to trigger saving of the currently displayed image."""
-        self.data_manager.save_current_slice(self.current_pixmap, filepath)
+        self.data_manager.save_current_slice(filepath, self.current_slice_index, self.window_width, self.window_center)
 
     def save_as_dicom_ui(self, directory_path: str):
         self.data_manager.save_as_dicom(directory_path)
@@ -372,5 +372,5 @@ class ViewerWidget(QWidget):
 
     def export_as_mp4_ui(self, file_path):
         self.data_manager.save_as_mp4(file_path, self.cine_interval, self.window_width, self.window_center)
-        print(f"width: {self.window_width}, level: {self.window_center}")
+        #print(f"width: {self.window_width}, level: {self.window_center}")
 

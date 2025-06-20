@@ -7,14 +7,14 @@ import sys
 import numpy as np
 import os
 
-from dicom.NIfTI_loader_thread import start_nifti_loader
+from image_data_handling.NIfTI_loader_thread import start_nifti_loader
 from ui.floating_tool_bar import FloatingControlsWindow
 from ui.metadata_widget import DicomMetadataViewer
 from ui.save_menu import SaveDialog
 from ui.viewer_widget import ViewerWidget
-from dicom.dicom_reader import DicomReader
+from image_data_handling.dicom_reader import DicomReader
 from ui.controls import DicomControls
-from dicom.dicom_loader import DicomLoader
+from image_data_handling.dicom_loader import DicomLoader
 from ui.stylesheets import dark_theme
 from ui.menu_builder import (
     _build_file_menu,
@@ -25,9 +25,9 @@ from ui.menu_builder import (
     _build_help_menu
 
 )
-from dicom.dicom_loader_thread import start_dicom_loader
-from dicom.NIfTI_reader import NIfTIReader
-from dicom.data_manager import DataSaver
+from image_data_handling.dicom_loader_thread import start_dicom_loader
+from image_data_handling.NIfTI_reader import NIfTIReader
+from image_data_handling.data_manager import VolumeDataManager
 
 
 class UIMainWindow(QMainWindow):
@@ -40,7 +40,7 @@ class UIMainWindow(QMainWindow):
         self.reader_dicom = DicomReader()
         self.reader_nifti = NIfTIReader()
 
-        self.data_manager = DataSaver()
+        self.data_manager = VolumeDataManager()
 
         self.viewer_widget = ViewerWidget(data_manager = self.data_manager)
 
@@ -284,6 +284,6 @@ class UIMainWindow(QMainWindow):
         elif format_type == "nifti":
             self.save_as_nifti(file_path)
         else:
-            QMessageBox.warning(self, "Unknown Format", f"Attempted to save in an unknown format: {format_type}")
+            print(f"Unknown Format. Attempted to save in an unknown format: {format_type}")
 
 
