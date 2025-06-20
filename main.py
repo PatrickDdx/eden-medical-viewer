@@ -1,9 +1,19 @@
 from PyQt6.QtWidgets import QApplication
 import sys
-
+import pydicom
+import warnings
 from ui.main_window import UIMainWindow
 from ui.stylesheets import dark_theme_global_1, dark_theme_global_2, dark_theme_global_3
 
+# Filter out the specific UserWarning from pydicom.valuerep related to invalid UI values
+# The message pattern is crucial here.
+# You might need to adjust the message string slightly if it changes in future pydicom versions.
+warnings.filterwarnings(
+    "ignore",
+    message="Invalid value for VR UI: '.*'. Please see .* for allowed values for each VR.",
+    category=UserWarning,
+    module='pydicom.valuerep' # Specify the module where the warning originates
+)
 
 def main():
     app = QApplication(sys.argv)

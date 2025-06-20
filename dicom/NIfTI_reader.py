@@ -15,5 +15,7 @@ class NIfTIReader():
 
         affine = nii_img.affine
 
+        #header = nii_img.header
+
         return nii_data, affine
 
