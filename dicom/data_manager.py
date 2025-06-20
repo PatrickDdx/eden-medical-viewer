@@ -3,6 +3,7 @@ import cv2
 import pydicom
 import nibabel
 from PyQt6.QtGui import QPixmap, QImage
+from pathlib import Path
 
 class DataSaver:
 
@@ -68,8 +69,24 @@ class DataSaver:
         print("DICOM saved (or not because the method is blank...)")
         return
 
-    def save_as_nifti(self):
-        pass
+    def save_as_nifti(self, filepath: str):
+        if self.volume_data is None or self.nifti_affine_matrix is None:
+            print("Missing data or affine Matrix")
+            print(f"volume_data is None? {self.volume_data is None}")
+            print(f"affine_matrix is None? {self.nifti_affine_matrix is None}")
+
+            return
+
+        try:
+            save_volume = np.transpose(self.volume_data, (2, 1, 0))
+
+            nifti_img = nibabel.Nifti1Image(save_volume, self.nifti_affine_matrix)
+            nibabel.save(nifti_img, filepath)
+
+            print(f"NIfTI save to {filepath}")
+        except Exception as e:
+            print(f"Failed to save NIfTI: {e}")
+
 
     def save_as_mp4(self, file_path: str, cine_interval, window_width, window_level):
         """Exports the current volume as MP4 video"""

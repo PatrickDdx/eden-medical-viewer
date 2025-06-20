@@ -186,7 +186,14 @@ class UIMainWindow(QMainWindow):
 
     def save_as_nifti(self):
         """Saves the current NIfTI via the QFileDialog"""
-        pass
+        print("Save nifti clicked")
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save as NIfTI", "",
+                                                   "NIfTI (*.nii);; NIfTI (*.nii.gz);; All Files (*)")
+
+        if file_path:
+            self.viewer_widget.save_as_nifti_ui(file_path)
+        else:
+            print("Save cancelled")
 
     def save_as_mp4(self):
         """Saves the current image data as MP4 via the QFileDialog"""
@@ -218,6 +225,7 @@ class UIMainWindow(QMainWindow):
 
     def _on_nifti_loading_finished(self, volume, center, width, affine_matrix = None):
         self.nifti_affine_matrix = affine_matrix
+        self.data_manager.set_nifti_affine_matrix(self.nifti_affine_matrix)
         self._on_volume_loaded(volume, center, width)
 
     def _on_volume_loaded(self, volume, default_center, default_width, metadata_dict=None):
@@ -235,7 +243,9 @@ class UIMainWindow(QMainWindow):
         self.metadata_viewer.display_metadata(metadata_dict)
 
         #Set the control sliders
-        self.floating_controls_window.controls.slider.setMaximum(volume.shape[0] - 1)
+        slice_maximum = volume.shape[0] - 1
+        self.floating_controls_window.controls.slider.setMaximum(slice_maximum)
+        self.floating_controls_window.controls.slice_value_label.setText(f"1/{slice_maximum}")
         self.floating_controls_window.controls.center_slider.setValue(default_center)
         self.floating_controls_window.controls.width_slider.setValue(default_width)
 

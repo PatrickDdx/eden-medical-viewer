@@ -355,8 +355,8 @@ class ViewerWidget(QWidget):
             directory_path
         )
 
-    def save_as_nifti_ui(self):
-        pass
+    def save_as_nifti_ui(self, file_path):
+        self.data_manager.save_as_nifti(file_path)
 
     def export_as_mp4_ui(self, file_path):
         self.data_manager.save_as_mp4(file_path, self.cine_interval, self.window_width, self.window_center)

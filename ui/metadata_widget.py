@@ -25,64 +25,6 @@ class DicomMetadataViewer(QWidget):
 
         #self.setMinimumWidth(300)
 
-        self.tree.setStyleSheet("""
-            QTreeWidget {
-                background-color: #1e1e1e;
-                alternate-background-color: #2a2a2a;
-                color: #e0e0e0;
-                border: 1px solid #3c3c3c;
-                border-radius: 8px;
-                font-family: -apple-system, "SF Pro", "Helvetica Neue", Arial, sans-serif;
-                font-size: 13px;
-            }
-
-            QTreeWidget::item {
-                padding: 6px 8px;
-                selection-background-color: #3a7bd5;
-                selection-color: #ffffff;
-            }
-
-            QTreeView::branch:has-children:!has-siblings:closed,
-            QTreeView::branch:closed:has-children:has-siblings {
-                border-image: none;
-                image: url(:/icons/arrow-right-dark.png);  /* optional: use minimal arrow icons */
-            }
-
-            QTreeView::branch:open:has-children:!has-siblings,
-            QTreeView::branch:open:has-children:has-siblings {
-                border-image: none;
-                image: url(:/icons/arrow-down-dark.png);
-            }
-
-            QHeaderView::section {
-                background-color: #2e2e2e;
-                color: #bbbbbb;
-                padding: 6px;
-                font-weight: 500;
-                border: none;
-            }
-
-            QScrollBar:vertical {
-                background: #1e1e1e;
-                width: 12px;
-                margin: 0px 0px 0px 0px;
-            }
-
-            QScrollBar::handle:vertical {
-                background: #555;
-                min-height: 20px;
-                border-radius: 6px;
-            }
-
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0;
-            }
-
-            QScrollBar::handle:vertical:hover {
-                background: #777;
-            }
-        """)
-
     def display_metadata(self, metadata: dict):
         """Displays the key-value metadata dictionary"""
         self.tree.clear()

@@ -13,5 +13,7 @@ class NIfTIReader():
         nii_data = nii_img.get_fdata() #shape (x,y,z)
         nii_data = np.transpose(nii_data, (2,1,0)) #to shape (z,y,x)
 
-        return nii_data
+        affine = nii_img.affine
+
+        return nii_data, affine
 
