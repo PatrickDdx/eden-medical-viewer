@@ -12,22 +12,28 @@ def _build_file_menu(window, menu):
     open_nifti_action.triggered.connect(window.open_nifti_func)
     file_menu.addAction(open_nifti_action)
 
-    save_as_action = QAction("Save As Image", window)
-    save_as_action.triggered.connect(window.save_current_slice_as_image)
-    file_menu.addAction(save_as_action)
+    #save_as_action = QAction("Save As Image", window)
+    #save_as_action.triggered.connect(window.save_current_slice_as_image)
+    #file_menu.addAction(save_as_action)
 
-    export_cine_loop = QAction("Export as MP4", window)
-    export_cine_loop.triggered.connect(window.save_as_mp4)
-    file_menu.addAction(export_cine_loop)
+    #export_cine_loop = QAction("Export as MP4", window)
+    #export_cine_loop.triggered.connect(window.save_as_mp4)
+    #file_menu.addAction(export_cine_loop)
 
     exit_action = QAction("Exit", window)
     exit_action.triggered.connect(window.close_application)
     file_menu.addAction(exit_action)
 
     #this is a dummy for "save as" + "dicom"/"nifti" to test the functions. i want a pop up window later for saving and a selection which file format to save as
-    save_as_dummy = QAction("Save as dummy", window)
-    save_as_dummy.triggered.connect(window.save_as_dicom)
-    file_menu.addAction(save_as_dummy)
+    #save_as_dummy = QAction("Save as dummy", window)
+    #save_as_dummy.triggered.connect(window.save_as_dicom)
+    #file_menu.addAction(save_as_dummy)
+
+    file_menu.addSeparator()
+
+    save_action = QAction("Save", window)
+    save_action.triggered.connect(window.show_save_dialog)
+    file_menu.addAction(save_action)
 
 def _build_windowing_menu(window, menu):
     window_presets_menu = menu.addMenu("Windowing")

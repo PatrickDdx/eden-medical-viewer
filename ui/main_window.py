@@ -10,6 +10,7 @@ import os
 from dicom.NIfTI_loader_thread import start_nifti_loader
 from ui.floating_tool_bar import FloatingControlsWindow
 from ui.metadata_widget import DicomMetadataViewer
+from ui.save_menu import SaveDialog
 from ui.viewer_widget import ViewerWidget
 from dicom.dicom_reader import DicomReader
 from ui.controls import DicomControls
@@ -157,17 +158,17 @@ class UIMainWindow(QMainWindow):
                 self._on_volume_loading_error
             )
 
-    def save_current_slice_as_image(self):
+    def save_current_slice_as_image(self, file_path = None):
         """Saves the current slice via the QFileDialog"""
         print("Save as clicked")
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", "", "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (.bmp);;All Files (*)")
+        #file_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", "", "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (.bmp);;All Files (*)")
 
         if file_path:
             self.viewer_widget.save_current_slice_ui(file_path)
         else:
             print("Save cancelled")
 
-    def save_as_dicom(self):
+    def save_as_dicom(self, directory = None):
         """Saves the current DICOM via the QFileDialog"""
         print("Save dicom clicked")
         if self.data_manager.volume_data is None:
@@ -177,28 +178,28 @@ class UIMainWindow(QMainWindow):
             print("Missing Data: header")
             return
 
-        directory = QFileDialog.getExistingDirectory(self, "Select Directory to Save DICOM Series")
+        #directory = QFileDialog.getExistingDirectory(self, "Select Directory to Save DICOM Series")
 
         if directory:
             self.viewer_widget.save_as_dicom_ui(directory)
         else:
             print("Dicom saving cancelled")
 
-    def save_as_nifti(self):
+    def save_as_nifti(self, file_path = None):
         """Saves the current NIfTI via the QFileDialog"""
         print("Save nifti clicked")
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save as NIfTI", "",
-                                                   "NIfTI (*.nii);; NIfTI (*.nii.gz);; All Files (*)")
+        #file_path, _ = QFileDialog.getSaveFileName(self, "Save as NIfTI", "",
+        #                                           "NIfTI (*.nii);; NIfTI (*.nii.gz);; All Files (*)")
 
         if file_path:
             self.viewer_widget.save_as_nifti_ui(file_path)
         else:
             print("Save cancelled")
 
-    def save_as_mp4(self):
+    def save_as_mp4(self, file_path = None):
         """Saves the current image data as MP4 via the QFileDialog"""
         print("save as mp4 clicked")
-        file_path, _ = QFileDialog.getSaveFileName(self, "Export as MP4", "", "MP4 Video (*.mp4)")
+        #file_path, _ = QFileDialog.getSaveFileName(self, "Export as MP4", "", "MP4 Video (*.mp4)")
 
         if file_path:
             try:
@@ -262,5 +263,27 @@ class UIMainWindow(QMainWindow):
         QMessageBox.critical(self, "Loading Error", f"Failed to load DICOM series:\n{error_message}")
 
 
+    def show_save_dialog(self):
+        if self.data_manager.volume_data is None:
+            print("No data to save")
+            return
+
+        save_dialog = SaveDialog(self)
+        save_dialog.save_requested.connect(self.execute_save_action)
+        save_dialog.exec()
+
+    def execute_save_action(self, format_type, file_path):
+        """Executes the appropriate save function based on dialog selection."""
+        print(f"Save requested: Format={format_type}, Path={file_path}")
+        if format_type == "image":
+            self.save_current_slice_as_image(file_path)
+        elif format_type == "mp4":
+            self.save_as_mp4(file_path)
+        elif format_type == "dicom":
+            self.save_as_dicom(file_path)  # For DICOM, file_path is actually a directory
+        elif format_type == "nifti":
+            self.save_as_nifti(file_path)
+        else:
+            QMessageBox.warning(self, "Unknown Format", f"Attempted to save in an unknown format: {format_type}")
 
 
