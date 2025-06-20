@@ -180,7 +180,7 @@ class UIMainWindow(QMainWindow):
         directory = QFileDialog.getExistingDirectory(self, "Select Directory to Save DICOM Series")
 
         if directory:
-            self.viewer_widget.save_as_dicom_ui(directory, self.original_dicom_headers)
+            self.viewer_widget.save_as_dicom_ui(directory)
         else:
             print("Dicom saving cancelled")
 
@@ -221,6 +221,7 @@ class UIMainWindow(QMainWindow):
 
     def _on_dicom_loading_finished(self, volume, center, width, metadata, original_dicom_headers):
         self.original_dicom_headers = original_dicom_headers
+        self.data_manager.set_original_dicom_headers(self.original_dicom_headers)
         self._on_volume_loaded(volume, center, width, metadata)
 
     def _on_nifti_loading_finished(self, volume, center, width, affine_matrix = None):

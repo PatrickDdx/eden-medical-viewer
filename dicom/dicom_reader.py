@@ -15,9 +15,9 @@ class DicomReader():
 
         instance_number = float(ds.get("InstanceNumber", 0))
 
-        slope = float(getattr(ds, 'RescaleSlope', 1.0))
-        intercept = float(getattr(ds, 'RescaleIntercept', 0.0))
-        img = img * slope + intercept
+        #slope = float(getattr(ds, 'RescaleSlope', 1.0))
+        #intercept = float(getattr(ds, 'RescaleIntercept', 0.0))
+        #img = img * slope + intercept
 
         return instance_number, img, ds
 

@@ -126,8 +126,24 @@ class ViewerWidget(QWidget):
             return
 
         self.current_slice_index = slice_index
-        slice_data = self.dicom_slices[slice_index]
-        processed = self.apply_windowing(slice_data)
+        raw_slice_data = self.dicom_slices[slice_index]
+
+        if self.data_manager and self.data_manager.current_data_type == "dicom":
+
+            if self.data_manager and self.data_manager.original_dicom_headers:
+                current_header = self.data_manager.original_dicom_headers[slice_index]
+                slope = float(getattr(current_header, 'RescaleSlope', 1.0))
+                intercept = float(getattr(current_header, 'RescaleIntercept', 0.0))
+
+                modality_slice_data = raw_slice_data * slope + intercept
+            else:
+                # Fallback if no headers or data_manager is set
+                modality_slice_data = raw_slice_data
+                print("Warning: No DICOM headers available for display rescale. Displaying raw data.")
+        elif self.data_manager and self.data_manager.current_data_type == "nifti":
+            modality_slice_data = raw_slice_data #as get_fdata() already scales the data
+
+        processed = self.apply_windowing(modality_slice_data)
         self.display_image(processed)
 
         # IMPORTANT: When the image is updated by non-slider means (e.g., cine loop, key press, wheel event),
@@ -348,12 +364,8 @@ class ViewerWidget(QWidget):
         """UI-level method to trigger saving of the currently displayed image."""
         self.data_manager.save_current_slice(self.current_pixmap, filepath)
 
-    def save_as_dicom_ui(self, directory_path: str, original_dicom_headers: list = None):
-        self.data_manager.save_as_dicom(
-            self.data_manager.volume_data,
-            original_dicom_headers,
-            directory_path
-        )
+    def save_as_dicom_ui(self, directory_path: str):
+        self.data_manager.save_as_dicom(directory_path)
 
     def save_as_nifti_ui(self, file_path):
         self.data_manager.save_as_nifti(file_path)

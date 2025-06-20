@@ -1,9 +1,11 @@
 import numpy as np
 import cv2
 import pydicom
+from pydicom.uid import ExplicitVRLittleEndian
 import nibabel
 from PyQt6.QtGui import QPixmap, QImage
 from pathlib import Path
+import copy
 
 class DataSaver:
 
@@ -11,6 +13,7 @@ class DataSaver:
         self._volume_data = None
         self.original_dicom_headers = None
         self.nifti_affine_matrix = None
+        self.current_data_type = None
 
     @property
     def volume_data(self):
@@ -22,10 +25,14 @@ class DataSaver:
         self._volume_data = data
 
     def set_original_dicom_headers(self, headers: list):
+        self.current_data_type = "dicom"
         self.original_dicom_headers = headers
+        self.nifti_affine_matrix = None #clear NIfTI specific data
 
     def set_nifti_affine_matrix(self, affine: np.ndarray):
-        self.nifti_affine_matrix = affine
+        self.current_data_type = "nifti"
+        self.nifti_affine_matrix = affine#
+        self.original_dicom_headers = None
 
     def apply_windowing_internal(self, img: np.ndarray, width, level) -> np.ndarray:
         lower_bound = level - (width / 2)
@@ -66,7 +73,56 @@ class DataSaver:
 
         print(f"Saving DICOM series to: {directory_path}")
 
-        print("DICOM saved (or not because the method is blank...)")
+        output_dir = Path(directory_path)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        series_uid = pydicom.uid.generate_uid()
+
+        for i, original_header in enumerate(self.original_dicom_headers):
+
+            header = copy.deepcopy(original_header)
+
+            slice_data = self.volume_data[i]
+
+            try:
+
+                # Force uncompressed transfer syntax
+                header.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+                header.is_implicit_VR = False
+                header.is_little_endian = True
+
+                # Ensure the pixel data has correct shape/type
+                header.PixelData = slice_data.astype(header.pixel_array.dtype).tobytes()
+                header.Rows, header.Columns = slice_data.shape
+                header.SeriesInstanceUID = series_uid
+                # Update InstanceNumber to ensure ordering in viewers
+                header.InstanceNumber = i + 1
+
+                # Update SOPInstanceUID to make sure each slice is unique
+                header.SOPInstanceUID = pydicom.uid.generate_uid()
+
+                # --- IMPORTANT: Ensure Windowing Tags are Present ---
+                # Check if original_header has Window Center/Width and copy them
+                if 'WindowCenter' in original_header:
+                    header.WindowCenter = original_header.WindowCenter
+                if 'WindowWidth' in original_header:
+                    header.WindowWidth = original_header.WindowWidth
+
+                # Also consider Rescale Slope/Intercept if present and needed for correct interpretation
+                if 'RescaleIntercept' in original_header:
+                    header.RescaleIntercept = original_header.RescaleIntercept
+                if 'RescaleSlope' in original_header:
+                    header.RescaleSlope = original_header.RescaleSlope
+                # --- End Windowing Tags ---
+
+                output_file = output_dir / f"slice_{i:04d}.dcm"
+                header.save_as(str(output_file), write_like_original=True)
+
+            except Exception as e:
+                print(f"Error writing slice {i}: {e}")
+                break
+
+        print(f"DICOM series saved to {directory_path}")
         return
 
     def save_as_nifti(self, filepath: str):
