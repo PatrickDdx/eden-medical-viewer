@@ -43,6 +43,8 @@ class SaveDialog(QDialog):
         self.setGeometry(200,200,400,200) # (Xpos, Ypos, width, height)
         self.setMinimumSize(400, 200)
 
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+
         self.init_ui()
 
     def init_ui(self):
