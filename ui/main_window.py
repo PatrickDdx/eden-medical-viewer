@@ -1,5 +1,5 @@
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
-from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget, QDockWidget, QProgressDialog, QMessageBox, QLabel
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QVBoxLayout, QWidget, QDockWidget, QMessageBox
 
 import os
 
@@ -19,6 +19,7 @@ from ui.menu_builder import (
     _build_help_menu
 
 )
+from controllers.load_controller import LoadController
 from image_data_handling.dicom_loader_thread import start_dicom_loader
 from image_data_handling.NIfTI_reader import NIfTIReader
 from image_data_handling.data_manager import VolumeDataManager
@@ -46,6 +47,11 @@ class UIMainWindow(QMainWindow):
                                       center_slider=self.floating_controls_window.controls.center_slider,
                                       width_slider=self.floating_controls_window.controls.width_slider
                                       )
+
+        self.metadata_viewer = DicomMetadataViewer()
+
+        self.load_controller = LoadController(self, self.data_manager, self.viewer_widget, self.metadata_viewer)
+
         self.floating_controls_window.show()
         self.update_floating_window_position()
 
@@ -53,7 +59,6 @@ class UIMainWindow(QMainWindow):
 
         self.setupMenuBar()
 
-        self.metadata_viewer = DicomMetadataViewer()
         self.metadata_dock = QDockWidget("DICOM Metadata", self)
         self.metadata_dock.setWidget(self.metadata_viewer)
         self.metadata_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
@@ -119,39 +124,11 @@ class UIMainWindow(QMainWindow):
 
     def open_dicom_file_func(self):
         """Open a DICOM file via QFileDialog and start threaded loading"""
-        print("open DICOM file clicked")
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open DICOM File", "", "DICOM Files (*.dcm);;All Files (*)")
-        print(file_path)
-        if file_path:
-            print(f"open: {file_path}")
-
-            folder = os.path.dirname(file_path)
-
-            self.viewer_widget.show_loading_animation()
-
-            self.dicom_thread, self.dicom_loader = start_dicom_loader(
-                folder,
-                self.reader_dicom,
-                self._on_dicom_loading_finished,
-                self._on_volume_loading_error
-            )
+        self.load_controller.open_dicom_file()
 
     def open_nifti_func(self):
         """Open a NIfTI file via QFileDialog and start threaded loading"""
-        print("open NIfTI file clicked")
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open NIfTI File", "", "NIfTI Files (*.nii);;All Files (*)")
-        print(file_path)
-        if file_path:
-            print(f"open: {file_path}")
-
-            self.viewer_widget.show_loading_animation()
-
-            self.nifti_thread, self.nifti_loader = start_nifti_loader(
-                file_path,
-                self.reader_nifti,
-                self._on_nifti_loading_finished,
-                self._on_volume_loading_error
-            )
+        self.load_controller.open_nifti_file()
 
     def save_current_slice_as_image(self, file_path = None):
         """Saves the current slice via the QFileDialog"""
@@ -214,48 +191,6 @@ class UIMainWindow(QMainWindow):
     def close_application(self):
         """Closes the application"""
         self.close()
-
-    def _on_dicom_loading_finished(self, volume, center, width, metadata, original_dicom_headers):
-        self.original_dicom_headers = original_dicom_headers
-        self.data_manager.set_original_dicom_headers(self.original_dicom_headers)
-        self._on_volume_loaded(volume, center, width, metadata)
-
-    def _on_nifti_loading_finished(self, volume, center, width, affine_matrix = None):
-        self.nifti_affine_matrix = affine_matrix
-        self.data_manager.set_nifti_affine_matrix(self.nifti_affine_matrix)
-        self._on_volume_loaded(volume, center, width)
-
-    def _on_volume_loaded(self, volume, default_center, default_width, metadata_dict=None):
-        print("DICOM loading finished (UI thread)")
-        self.viewer_widget.hide_loading_animation()
-        # Re-enable main window interaction
-        self.setEnabled(True)
-
-        # Update your UI with the loaded data
-        self.viewer_widget.load_dicom_series(volume)
-        self.viewer_widget.update_windowing(default_center, default_width)
-
-        if metadata_dict is None:
-            metadata_dict = {}
-        self.metadata_viewer.display_metadata(metadata_dict)
-
-        #Set the control sliders
-        slice_maximum = volume.shape[0] - 1
-        self.floating_controls_window.controls.slider.setMaximum(slice_maximum)
-        self.floating_controls_window.controls.slice_value_label.setText(f"1/{slice_maximum}")
-        self.floating_controls_window.controls.center_slider.setValue(default_center)
-        self.floating_controls_window.controls.width_slider.setValue(default_width)
-
-    def _on_volume_loading_error(self, error_message):
-        print(f"DICOM loading error (UI thread): {error_message}")
-        # Hide and clean up the loading animation
-        self.viewer_widget.hide_loading_animation()
-
-        # Re-enable main window interaction
-        self.setEnabled(True)
-
-        # Show an error message to the user
-        QMessageBox.critical(self, "Loading Error", f"Failed to load DICOM series:\n{error_message}")
 
 
     def show_save_dialog(self):
