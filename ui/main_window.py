@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QMainWindow, QFileDialog, QVBoxLayout, QWidget, QDoc
 
 import os
 
+from controllers.save_controller import SaveController
 from image_data_handling.NIfTI_loader_thread import start_nifti_loader
 from image_data_handling.windowing_manager import WindowingManager
 from ui.floating_tool_bar import FloatingControlsWindow
@@ -51,6 +52,7 @@ class UIMainWindow(QMainWindow):
         self.metadata_viewer = DicomMetadataViewer()
 
         self.load_controller = LoadController(self, self.data_manager, self.viewer_widget, self.metadata_viewer)
+        self.save_controller = SaveController(self.viewer_widget, self.data_manager)
 
         self.floating_controls_window.show()
         self.update_floating_window_position()
@@ -63,9 +65,6 @@ class UIMainWindow(QMainWindow):
         self.metadata_dock.setWidget(self.metadata_viewer)
         self.metadata_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.metadata_dock)
-
-        self.original_dicom_headers = None
-        self.nifti_affine_matrix = None
 
     def resizeEvent(self, event):
         """Override resize event to reposition floating window."""
@@ -130,58 +129,6 @@ class UIMainWindow(QMainWindow):
         """Open a NIfTI file via QFileDialog and start threaded loading"""
         self.load_controller.open_nifti_file()
 
-    def save_current_slice_as_image(self, file_path = None):
-        """Saves the current slice via the QFileDialog"""
-        print("Save as clicked")
-        #file_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", "", "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (.bmp);;All Files (*)")
-
-        if file_path:
-            self.viewer_widget.save_current_slice_ui(file_path)
-        else:
-            print("Save cancelled")
-
-    def save_as_dicom(self, directory = None):
-        """Saves the current DICOM via the QFileDialog"""
-        print("Save dicom clicked")
-        if self.data_manager.volume_data is None:
-            print("No Data")
-            return
-        if self.original_dicom_headers is None or not self.original_dicom_headers:
-            print("Missing Data: header")
-            return
-
-        #directory = QFileDialog.getExistingDirectory(self, "Select Directory to Save DICOM Series")
-
-        if directory:
-            self.viewer_widget.save_as_dicom_ui(directory)
-        else:
-            print("Dicom saving cancelled")
-
-    def save_as_nifti(self, file_path = None):
-        """Saves the current NIfTI via the QFileDialog"""
-        print("Save nifti clicked")
-        #file_path, _ = QFileDialog.getSaveFileName(self, "Save as NIfTI", "",
-        #                                           "NIfTI (*.nii);; NIfTI (*.nii.gz);; All Files (*)")
-
-        if file_path:
-            self.viewer_widget.save_as_nifti_ui(file_path)
-        else:
-            print("Save cancelled")
-
-    def save_as_mp4(self, file_path = None):
-        """Saves the current image data as MP4 via the QFileDialog"""
-        print("save as mp4 clicked")
-        #file_path, _ = QFileDialog.getSaveFileName(self, "Export as MP4", "", "MP4 Video (*.mp4)")
-
-        if file_path:
-            try:
-                self.viewer_widget.export_as_mp4_ui(file_path)
-                print("MP4 export completed successfully.")
-            except Exception as e:
-                print(f"MP4 export failed: {e}")
-        else:
-            print("Save cancelled")
-
     def load_ai_model(self):
         """Loads an AI Model - at least later ;)"""
         model_path, _ = QFileDialog.getOpenFileName(self, "Load AI Model", "", "Model Files (*.h5 *pth *pkl *onnx *pb *tflite *keras *joblib *pmml);;All Files (*)")
@@ -191,7 +138,6 @@ class UIMainWindow(QMainWindow):
     def close_application(self):
         """Closes the application"""
         self.close()
-
 
     def show_save_dialog(self):
         if self.data_manager.volume_data is None:
@@ -206,13 +152,13 @@ class UIMainWindow(QMainWindow):
         """Executes the appropriate save function based on dialog selection."""
         print(f"Save requested: Format={format_type}, Path={file_path}")
         if format_type == "image":
-            self.save_current_slice_as_image(file_path)
+            self.save_controller.save_image(file_path)
         elif format_type == "mp4":
-            self.save_as_mp4(file_path)
+            self.save_controller.save_mp4(file_path)
         elif format_type == "dicom":
-            self.save_as_dicom(file_path)  # For DICOM, file_path is actually a directory
+            self.save_controller.save_dicom(file_path)  # For DICOM, file_path is actually a directory
         elif format_type == "nifti":
-            self.save_as_nifti(file_path)
+            self.save_controller.save_nifti(file_path)
         else:
             print(f"Unknown Format. Attempted to save in an unknown format: {format_type}")
 

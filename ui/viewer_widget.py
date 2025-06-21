@@ -1,11 +1,16 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout, QFileDialog, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem
+from PyQt6.QtWidgets import (
+    QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout,
+    QFileDialog, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem
+)
 from PyQt6.QtCore import Qt, QTimer, QStandardPaths, QDir
 from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter
-import numpy as np
 
+import numpy as np
+import os
+from controllers.cine_loop_controller import CineController
 from ui.graphics_view import CustomGraphicsView
 from image_data_handling.data_manager import VolumeDataManager
-from image_data_handling.windowing_manager import WindowingManager
+from ui.loading_widget import LoadingWidget
 
 class ViewerWidget(QWidget):
     def __init__(self, data_manager: VolumeDataManager = None, windowing_manager = None):
@@ -28,12 +33,18 @@ class ViewerWidget(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setFocus()
 
-        self.setup_loading_animation() #loading animation setup
+        # Calculate the base directory relative to where this script (loading_widget.py) is
+        # Go up one directory (from 'ui' to 'dicomViewer')
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+        # Construct the full path to the GIF using os.path.join
+        gif_path = os.path.join(base_dir, "assets", "animations", "Ripple@1x-1.0s-200px-200px.gif")
+
+        self.loading_widget = LoadingWidget(gif_path)
 
         # --- Main Layout using QStackedLayout ---
         self.main_stacked_layout = QStackedLayout()
         self.main_stacked_layout.addWidget(self.graphics_view)  # use the QGraphicsView itself
-        self.main_stacked_layout.addWidget(self.loading_container)  # Index 1: Loading animation
+        self.main_stacked_layout.addWidget(self.loading_widget)  # Index 1: Loading animation
 
         # Set the main layout of the ViewerWidget
         self.setLayout(self.main_stacked_layout)
@@ -53,10 +64,7 @@ class ViewerWidget(QWidget):
         self.center_slider = None
         self.width_slider = None
 
-        self.cine_timer = QTimer()
-        self.cine_timer.timeout.connect(self.next_frame)
-        self.is_cine_playing = False
-        self.cine_interval = 100
+        self.cine_controller = CineController(self.next_frame)
 
         self.window_keys = {
             Qt.Key.Key_1: "Brain",
@@ -207,67 +215,18 @@ class ViewerWidget(QWidget):
 
 
 ####################################################### Loading animation
-
-    def setup_loading_animation(self):
-        # --- Loading Animation Setup ---
-        self.loading_animation_label = QLabel(self)
-        self.loading_animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        #self.loading_animation_label.hide()  # Hide initially
-
-        self.loading_movie = QMovie(
-            "C:/Users/patri/GIT/dicomViewer/assets/animations/Ripple@1x-1.0s-200px-200px.gif")  # Adjust path as needed
-        if self.loading_movie.isValid():
-            self.loading_animation_label.setMovie(self.loading_movie)
-        else:
-            print("Warning: Loading GIF not found or invalid. Using text placeholder.")
-            self.loading_animation_label.setText("Loading...")
-            self.loading_animation_label.setStyleSheet("color: white;")  # Example style
-
-        # Add a placeholder label for loading text
-        self.loading_text_label = QLabel("Loading DICOM files, please wait...", self)
-        self.loading_text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.loading_text_label.setStyleSheet("color: white;")
-        #self.loading_text_label.hide()
-
-        self.loading_container = QWidget()
-        loading_layout = QVBoxLayout()
-        loading_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        loading_layout.addWidget(self.loading_animation_label)
-        loading_layout.addWidget(self.loading_text_label)
-        self.loading_container.setLayout(loading_layout)
-        self.loading_container.hide()
+    def hide_loading_animation(self):
+        self.loading_widget.stop()
+        self.main_stacked_layout.setCurrentWidget(self.graphics_view)
 
     def show_loading_animation(self):
-        """Shows the loading animation and hides the image label."""
-        self.main_stacked_layout.setCurrentWidget(self.loading_container)
-        if self.loading_movie.isValid():
-            self.loading_movie.start()
-        QApplication.processEvents()
-
-    def hide_loading_animation(self):
-        """Hides the loading animation and shows the image label."""
-        if self.loading_movie.isValid():
-            self.loading_movie.stop()
-        self.main_stacked_layout.setCurrentWidget(self.graphics_view)
+        self.loading_widget.start()
+        self.main_stacked_layout.setCurrentWidget(self.loading_widget)
 
 
 ##################################################### Cine loop functions
-
-    def start_cine_loop(self):
-        if self.dicom_slices is None:
-            return
-        self.cine_timer.start(self.cine_interval)
-        self.is_cine_playing = True
-
-    def stop_cine_loop(self):
-        self.cine_timer.stop()
-        self.is_cine_playing = False
-
     def toggle_cine_loop(self):
-        if self.is_cine_playing:
-            self.stop_cine_loop()
-        else:
-            self.start_cine_loop()
+        self.cine_controller.toggle()
 
     def next_frame(self):
         if self.dicom_slices is None:
@@ -276,34 +235,10 @@ class ViewerWidget(QWidget):
         self.update_image(self.current_slice_index)
 
     def increase_cine_speed(self):
-        self.cine_interval = max(10, self.cine_interval - 30)
-        if self.is_cine_playing:
-            self.cine_timer.start(self.cine_interval)
+        self.cine_controller.increase_speed()
 
     def decrease_cine_speed(self):
-        self.cine_interval = min(250, self.cine_interval + 30)
-        if self.is_cine_playing:
-            self.cine_timer.start(self.cine_interval)
+        self.cine_controller.decrease_speed()
 
-###################################################################################
 
-    def normalize_to_uint8(self, image):
-        img = np.clip(image, np.min(image), np.max(image))
-        img = (img-img.min()) / (img.max() - img.min()) * 255
-        return  img.astype(np.uint8)
-
-######################################## Saving functions
-    def save_current_slice_ui(self, filepath: str):
-        """UI-level method to trigger saving of the currently displayed image."""
-        self.data_manager.save_current_slice(filepath, self.current_slice_index, self.window_width, self.window_center)
-
-    def save_as_dicom_ui(self, directory_path: str):
-        self.data_manager.save_as_dicom(directory_path)
-
-    def save_as_nifti_ui(self, file_path):
-        self.data_manager.save_as_nifti(file_path)
-
-    def export_as_mp4_ui(self, file_path):
-        self.data_manager.save_as_mp4(file_path, self.cine_interval, self.window_width, self.window_center)
-        #print(f"width: {self.window_width}, level: {self.window_center}")
 
