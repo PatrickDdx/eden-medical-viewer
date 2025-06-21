@@ -1,21 +1,15 @@
-import pydicom.data
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
 from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget, QDockWidget, QProgressDialog, QMessageBox, QLabel
-from PyQt6.QtGui import QAction
-from PyQt6.QtGui import QMovie
-import sys
-import numpy as np
+
 import os
 
 from image_data_handling.NIfTI_loader_thread import start_nifti_loader
+from image_data_handling.windowing_manager import WindowingManager
 from ui.floating_tool_bar import FloatingControlsWindow
 from ui.metadata_widget import DicomMetadataViewer
 from ui.save_menu import SaveDialog
 from ui.viewer_widget import ViewerWidget
 from image_data_handling.dicom_reader import DicomReader
-from ui.controls import DicomControls
-from image_data_handling.dicom_loader import DicomLoader
-from ui.stylesheets import dark_theme
 from ui.menu_builder import (
     _build_file_menu,
     _build_windowing_menu,
@@ -41,10 +35,11 @@ class UIMainWindow(QMainWindow):
         self.reader_nifti = NIfTIReader()
 
         self.data_manager = VolumeDataManager()
+        self.windowing_manager = WindowingManager()
 
-        self.viewer_widget = ViewerWidget(data_manager = self.data_manager)
+        self.viewer_widget = ViewerWidget(data_manager = self.data_manager, windowing_manager=self.windowing_manager)
 
-        self.floating_controls_window = FloatingControlsWindow(self.viewer_widget)
+        self.floating_controls_window = FloatingControlsWindow(self.viewer_widget, self.windowing_manager)
         # Ensure the viewer widget in the main window gets the sliders from the floating controls
         # We need to access the controls instance inside the floating window
         self.viewer_widget.set_slider(self.floating_controls_window.controls.slider,

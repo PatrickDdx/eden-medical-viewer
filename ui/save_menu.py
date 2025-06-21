@@ -1,36 +1,11 @@
 import pydicom.data
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
 from PyQt6.QtWidgets import (
-    QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget,
-    QDockWidget, QProgressDialog, QMessageBox, QLabel, QDialog,
+    QFileDialog, QVBoxLayout, QLabel, QDialog,
     QComboBox, QPushButton, QLineEdit, QHBoxLayout, QFormLayout, QFrame
 )
-from PyQt6.QtGui import QAction
-from PyQt6.QtGui import QMovie
-import sys
-import numpy as np
+
 import os
-
-from image_data_handling.NIfTI_loader_thread import start_nifti_loader
-from ui.floating_tool_bar import FloatingControlsWindow
-from ui.metadata_widget import DicomMetadataViewer
-from ui.viewer_widget import ViewerWidget
-from image_data_handling.dicom_reader import DicomReader
-from ui.controls import DicomControls
-from image_data_handling.dicom_loader import DicomLoader
-from ui.stylesheets import dark_theme
-from ui.menu_builder import (
-    _build_file_menu,
-    _build_windowing_menu,
-    _build_ai_menu,
-    _build_view_menu,
-    _build_tools_menu,
-    _build_help_menu
-
-)
-from image_data_handling.dicom_loader_thread import start_dicom_loader
-from image_data_handling.NIfTI_reader import NIfTIReader
-from image_data_handling.data_manager import VolumeDataManager
 
 class SaveDialog(QDialog):
 

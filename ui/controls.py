@@ -1,7 +1,5 @@
 from PyQt6.QtWidgets import QSlider, QWidget, QVBoxLayout, QLabel, QGridLayout
 from PyQt6.QtCore import Qt
-from Tools.scripts.dutree import display
-
 
 class SliceSlider(QSlider):
     def __init__(self):
@@ -32,11 +30,11 @@ class WindowCenterSlider(QSlider):
         self.setToolTip("Adjust the window center for brightness")
 
 class DicomControls(QWidget):
-    def __init__(self, canvas):
+    def __init__(self, canvas, windowing_manager):
         super().__init__()
 
         self.canvas = canvas #is the viewer Widget that should be controlled with the slider etc.
-
+        self.windowing_manager = windowing_manager
         # Value labels for sliders
         self.slice_value_label = QLabel("0/0")
         self.center_value_label = QLabel("0")
@@ -94,8 +92,8 @@ class DicomControls(QWidget):
         self.update_nearest_neighbor_display()
 
     def update_image_from_slider(self, value):
-        self.canvas.update_image(value)   #########??????????
-
+        if self.canvas:
+            self.canvas.update_image(value)
 
     def update_windowing(self):
         new_center = self.center_slider.value()
@@ -111,7 +109,7 @@ class DicomControls(QWidget):
         current_width = self.width_slider.value()
         current_level= self.center_slider.value()
 
-        result = self.canvas.find_nearest_neighbor(current_width, current_level)
+        result = self.windowing_manager.get_closest_preset(current_width, current_level)
 
         if result:
             display_text = (

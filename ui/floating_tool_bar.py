@@ -1,11 +1,9 @@
-import pydicom.data
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject, QPoint
 from PyQt6.QtWidgets import QMainWindow, QApplication, QFileDialog, QVBoxLayout, QWidget, QDockWidget, QProgressDialog, QMessageBox, QLabel,QFrame, QHBoxLayout, QPushButton
 from ui.controls import DicomControls
-from ui.stylesheets import dark_theme
 
 class FloatingControlsWindow(QWidget):
-    def __init__(self, viewer_widget, parent=None):
+    def __init__(self, viewer_widget, windowing_manager, parent=None):
         super().__init__(parent)
         # Set window flags for a frameless window that stays on top
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
@@ -36,7 +34,7 @@ class FloatingControlsWindow(QWidget):
         title_bar_layout.addWidget(close_button)
 
         # Set up the layout and add DicomControls
-        self.controls = DicomControls(viewer_widget)
+        self.controls = DicomControls(viewer_widget, windowing_manager)
 
         self.main_frame.layout().addWidget(title_bar)
         self.main_frame.layout().addWidget(self.controls)

@@ -5,17 +5,14 @@ import numpy as np
 
 from ui.graphics_view import CustomGraphicsView
 from image_data_handling.data_manager import VolumeDataManager
-
-def calculate_distance(width, level, x_predefined, y_predefined):
-  distance = np.sqrt((width-x_predefined)**2+(level-y_predefined)**2)
-
-  return distance
+from image_data_handling.windowing_manager import WindowingManager
 
 class ViewerWidget(QWidget):
-    def __init__(self, data_manager: VolumeDataManager = None):
+    def __init__(self, data_manager: VolumeDataManager = None, windowing_manager = None):
         super().__init__()
 
         self.data_manager = data_manager
+        self.windowing_manager = windowing_manager
 
         self.graphics_view = CustomGraphicsView(self)
         self.scene = QGraphicsScene()
@@ -60,29 +57,6 @@ class ViewerWidget(QWidget):
         self.cine_timer.timeout.connect(self.next_frame)
         self.is_cine_playing = False
         self.cine_interval = 100
-
-        self.window_presets = {
-            #head and neck
-            "Brain": {"width": 80, "level": 40},
-            "Subdural": {"width": 130, "level": 50},
-            "Stroke": {"width": 8, "level": 32},
-            "Temporal bones": {"width": 2800, "level": 600},
-            #"soft tissues": {"width": 350, "level": 20},
-
-            #chest
-            "Lungs": {"width": 1500, "level": -600},
-            "Mediastinum": {"width": 350, "level": 50},
-            "Vascular/heart": {"width": 600, "level": 200},
-
-            #abdomen
-            "Soft tissues": {"width": 400, "level": 50},
-            "Liver": {"width": 150, "level": 30},
-
-            #spine
-            #"soft tissues": {"width": 250, "level": 50},
-            "Bone": {"width": 1800, "level": 400},
-
-        }
 
         self.window_keys = {
             Qt.Key.Key_1: "Brain",
@@ -129,13 +103,8 @@ class ViewerWidget(QWidget):
         raw_slice_data = self.dicom_slices[slice_index]
 
         if self.data_manager and self.data_manager.current_data_type == "dicom":
-
             if self.data_manager and self.data_manager.original_dicom_headers:
-                current_header = self.data_manager.original_dicom_headers[slice_index]
-                slope = float(getattr(current_header, 'RescaleSlope', 1.0))
-                intercept = float(getattr(current_header, 'RescaleIntercept', 0.0))
-
-                modality_slice_data = raw_slice_data * slope + intercept
+                modality_slice_data = self.data_manager.apply_rescale_internal(slice_index)
             else:
                 # Fallback if no headers or data_manager is set
                 modality_slice_data = raw_slice_data
@@ -143,14 +112,13 @@ class ViewerWidget(QWidget):
         elif self.data_manager and self.data_manager.current_data_type == "nifti":
             modality_slice_data = raw_slice_data #as get_fdata() already scales the data
 
-        processed = self.apply_windowing(modality_slice_data)
+        processed = self.windowing_manager.apply(modality_slice_data, self.window_width, self.window_center)
         self.display_image(processed)
 
         # IMPORTANT: When the image is updated by non-slider means (e.g., cine loop, key press, wheel event),
         # we update the slider's value directly. The slider's valueChanged signal will then trigger
         # the DicomControls label update.
         if self.slice_slider and self.slice_slider.value() != slice_index:
-            # NO blockSignals(True) here. We want the slider's signal to propagate to DicomControls.
             self.slice_slider.setValue(slice_index)
 
     def update_windowing(self, center: int, width: int):
@@ -167,27 +135,15 @@ class ViewerWidget(QWidget):
         if self.width_slider and self.width_slider.value() != width:
             self.width_slider.setValue(width)
 
-    def apply_windowing(self, img: np.ndarray) -> np.ndarray:
-        lower_bound = self.window_center - (self.window_width / 2)
-        upper_bound = self.window_center + (self.window_width /2)
-
-        windowed_img = np.clip(img, lower_bound, upper_bound)
-
-        denom = upper_bound - lower_bound
-        if denom == 0:
-            windowed_img_normalized = np.zeros_like(windowed_img, dtype=np.float32)
-        else:
-            windowed_img_normalized = (windowed_img - lower_bound) / denom
-
-        img_8bit = np.nan_to_num(windowed_img_normalized * 255).astype(np.uint8)
-
-        return img_8bit
-
-    def apply_window_preset(self, name: str):
-        preset = self.window_presets.get(name)
-        #print(f"presets: {preset}")
+    def apply_window_preset(self, preset_name):
+        preset = self.windowing_manager.get_preset(preset_name)
         if preset:
-            self.update_windowing(preset["level"], preset["width"])
+            ww, wl = preset
+            self.window_width = ww
+            self.window_center = wl
+            self.width_slider.setValue(ww)
+            self.center_slider.setValue(wl)
+            self.update_image(self.current_slice_index)
 
     def get_current_window(self):
         print(f"width: {self.window_width}, level: {self.window_center}")
@@ -335,29 +291,6 @@ class ViewerWidget(QWidget):
         img = np.clip(image, np.min(image), np.max(image))
         img = (img-img.min()) / (img.max() - img.min()) * 255
         return  img.astype(np.uint8)
-
-
-    def find_nearest_neighbor(self, current_width, current_level):
-        """Finds the nearest predefined window preset to a given (width, level) point"""
-
-        if self.current_pixmap is None:
-            return "N/A"
-
-        closest_window_name = None
-
-        names = []
-        distances_to_preset = []
-
-        for key in self.window_presets:
-            dist = calculate_distance(current_width, current_level, self.window_presets[key]["width"], self.window_presets[key]["level"])
-            names.append(key)
-            distances_to_preset.append(dist)
-
-        min_idx = np.argmin(distances_to_preset)
-        closest_window_name = names[min_idx]
-        #print(f"nearest predefined window is: {names[min_idx]} ; distance: {distances_to_preset[min_idx]}")
-
-        return closest_window_name
 
 ######################################## Saving functions
     def save_current_slice_ui(self, filepath: str):
