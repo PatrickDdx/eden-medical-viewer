@@ -4,7 +4,7 @@ import warnings
 from PyQt6.QtWidgets import QApplication
 import pydicom
 
-from ui.main_window import UIMainWindow
+from ui.main_window import MainWindow
 from ui.stylesheets import dark_theme_global_4
 
 # Filter out the specific UserWarning from pydicom.valuerep related to invalid UI values
@@ -23,7 +23,7 @@ def main():
     #Style
     app.setStyleSheet(dark_theme_global_4())
 
-    window = UIMainWindow()
+    window = MainWindow()
     window.show()
     sys.exit(app.exec())
 

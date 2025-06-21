@@ -1,10 +1,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QVBoxLayout, QWidget, QDockWidget, QMessageBox
 
-import os
-
 from controllers.save_controller import SaveController
-from image_data_handling.NIfTI_loader_thread import start_nifti_loader
 from image_data_handling.windowing_manager import WindowingManager
 from ui.floating_tool_bar import FloatingControlsWindow
 from ui.metadata_widget import DicomMetadataViewer
@@ -21,12 +18,11 @@ from ui.menu_builder import (
 
 )
 from controllers.load_controller import LoadController
-from image_data_handling.dicom_loader_thread import start_dicom_loader
 from image_data_handling.NIfTI_reader import NIfTIReader
 from image_data_handling.data_manager import VolumeDataManager
 
 
-class UIMainWindow(QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("EDEN")
@@ -144,7 +140,18 @@ class UIMainWindow(QMainWindow):
             print("No data to save")
             return
 
-        save_dialog = SaveDialog(self)
+        save_dialog = SaveDialog(self) # Pass self as parent
+
+        # Calculate the center position
+        main_window_center = self.geometry().center()
+        save_dialog_size = save_dialog.size()
+
+        # Calculate the top-left corner for the dialog to be centered
+        x = main_window_center.x() - save_dialog_size.width() // 2
+        y = main_window_center.y() - save_dialog_size.height() // 2
+
+        save_dialog.move(x, y)
+
         save_dialog.save_requested.connect(self.execute_save_action)
         save_dialog.exec()
 

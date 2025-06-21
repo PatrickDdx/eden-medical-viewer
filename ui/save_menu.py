@@ -15,7 +15,7 @@ class SaveDialog(QDialog):
     def __init__(self, parent = None):
         super().__init__(parent)
         self.setWindowTitle("Save Data")
-        self.setGeometry(200,200,400,200) # (Xpos, Ypos, width, height)
+        #self.setGeometry(200,200,400,200) # (Xpos, Ypos, width, height)
         self.setMinimumSize(400, 200)
 
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
