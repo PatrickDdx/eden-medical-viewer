@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication, QStackedLayout, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem, QLabel
-from PyQt6.QtCore import Qt, QTimer, QPointF
+from PyQt6.QtCore import Qt, QTimer, QPointF, QPoint # Ensure QPoint is imported
 from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter, QTransform
 import numpy as np
 import cv2
@@ -9,6 +9,7 @@ class InteractionMode(Enum):
     NONE = 0
     PAN = 1
     WINDOWING = 2
+    SAM = 3
 
 
 class CustomGraphicsView(QGraphicsView):
@@ -35,6 +36,8 @@ class CustomGraphicsView(QGraphicsView):
 
         self.sensitivity = 1
 
+        self.viewer_widget = parent if isinstance(parent, QWidget) else None  # Reference to the parent ViewerWidget
+
     #def enterEvent(self, event):
     #    self.setCursor(Qt.CursorShape.OpenHandCursor)
 
@@ -42,6 +45,29 @@ class CustomGraphicsView(QGraphicsView):
     #    self.setCursor(Qt.CursorShape.ArrowCursor)
 
     def mousePressEvent(self, event):
+
+        # Always check the current _mode first
+        if self._mode == InteractionMode.SAM:
+            if event.button() == Qt.MouseButton.LeftButton:
+                print("left click while interaction mode == sam")
+                self._mode= InteractionMode.NONE
+                pos = event.position().toPoint()
+                print(pos)
+
+                pos_in_scene = self.mapToScene(pos)
+                print(f"Clicked at scene coordinates: x={pos_in_scene.x()}, y={pos_in_scene.y()}")
+
+                if self.viewer_widget:
+                    self.viewer_widget.print_coord(pos_in_scene.x(), pos_in_scene.y())
+
+                #pos = event.position().toPoint()
+                #self.viewer_widget.print_coords(pos.x(), pos.y())
+
+                event.accept()
+            # In SAM mode, other mouse buttons might do nothing or specific SAM actions
+            return  # Don't fall through to other modes
+
+
         if event.button() == Qt.MouseButton.LeftButton:
             self._mode = InteractionMode.PAN
             self._pan_start_mouse_pos = event.position()
@@ -102,3 +128,48 @@ class CustomGraphicsView(QGraphicsView):
             event.accept()
         else:
             super().wheelEvent(event)
+
+    def set_interaction_mode(self, mode: InteractionMode):
+        """Sets the current interaction mode of the graphics view."""
+        # You might want to add logic here to reset cursors or other states
+        # when the mode changes.
+        if self._mode != mode:
+            print(f"Interaction mode changed from {self._mode.name} to {mode.name}")
+            self._mode = mode
+            if mode == InteractionMode.SAM:
+                self.setCursor(Qt.CursorShape.CrossCursor)  # Or a custom SAM cursor
+            else:
+                self.setCursor(Qt.CursorShape.ArrowCursor)  # Default cursor when not in SAM mode
+
+    def mapToImageCoordinates(self, view_pos: QPoint) -> QPoint:
+        """
+        Converts a point from view coordinates to image pixel coordinates.
+
+        Args:
+            view_pos (QPoint): The point in the QGraphicsView's coordinate system.
+
+        Returns:
+            QPoint: The corresponding point in the original image's pixel coordinate system.
+                    Returns QPoint(0,0) or handles appropriately if pixmap_item is not set.
+        """
+        if not self.viewer_widget or not self.viewer_widget.pixmap_item:
+            # Handle case where pixmap_item is not available
+            print("Warning: pixmap_item not available for coordinate mapping. Returning (0,0).")
+            return QPoint(0, 0)
+
+        # 1. Map from view coordinates to scene coordinates
+        scene_pos = self.mapToScene(QPointF(view_pos))
+
+        # 2. Map from scene coordinates to the pixmap item's local coordinates
+        # The pixmap item's local coordinates are its pixel coordinates.
+        image_coords = self.viewer_widget.pixmap_item.mapFromScene(scene_pos).toPoint()
+
+        # You might want to clamp the coordinates to ensure they are within the image bounds
+        # Get image dimensions from the pixmap item
+        image_width = self.viewer_widget.pixmap_item.pixmap().width()
+        image_height = self.viewer_widget.pixmap_item.pixmap().height()
+
+        x = max(0, min(image_coords.x(), image_width - 1))
+        y = max(0, min(image_coords.y(), image_height - 1))
+
+        return QPoint(x, y)

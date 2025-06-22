@@ -1,5 +1,6 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QVBoxLayout, QWidget, QDockWidget, QMessageBox
+from PyQt6.QtGui import QAction
 
 from controllers.save_controller import SaveController
 from image_data_handling.windowing_manager import WindowingManager
@@ -124,6 +125,10 @@ class MainWindow(QMainWindow):
     def open_nifti_func(self):
         """Open a NIfTI file via QFileDialog and start threaded loading"""
         self.load_controller.open_nifti_file()
+
+    def open_image_func(self):
+        """Open an image file (.png/.jpg)"""
+        self.load_controller.open_image_file()
 
     def load_ai_model(self):
         """Loads an AI Model - at least later ;)"""

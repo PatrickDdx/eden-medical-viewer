@@ -12,6 +12,10 @@ def _build_file_menu(window, menu):
     open_nifti_action.triggered.connect(window.open_nifti_func)
     file_menu.addAction(open_nifti_action)
 
+    open_image_action = QAction("Open Image" , window)
+    open_image_action.triggered.connect(window.open_image_func)
+    file_menu.addAction(open_image_action)
+
     exit_action = QAction("Exit", window)
     exit_action.triggered.connect(window.close_application)
     file_menu.addAction(exit_action)
@@ -41,6 +45,11 @@ def _build_ai_menu(window, menu):
     load_action = QAction("Load Model", window)
     load_action.triggered.connect(window.load_ai_model)
     ai_menu.addAction(load_action)
+
+    sam_action = QAction("Enable SAM", window)
+    sam_action.setCheckable(True)
+    sam_action.toggled.connect(window.viewer_widget.enable_sam)
+    ai_menu.addAction(sam_action)
 
 def _build_view_menu(window, menu):
     view_menu = menu.addMenu("View")

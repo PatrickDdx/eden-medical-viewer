@@ -7,6 +7,43 @@ class LoadController:
         self.original_dicom_headers = None
         self.nifti_affine_matrix = None
 
+    def open_image_file(self):
+        from PyQt6.QtWidgets import QFileDialog
+        import cv2
+        import numpy as np
+
+        image_filename, _ = QFileDialog.getOpenFileName(None, "Open Image File", "", "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (*.bmp);;All Files (*)") # "sample_medical_image.png"
+
+        # Read the image
+        image_bgr = cv2.imread(image_filename)
+        if image_bgr is None:
+            raise FileNotFoundError(f"Image not found at {image_filename}. Please check path and upload.")
+
+        # Convert to RGB (SAM expects RGB)
+        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY) #shape (x,y)
+
+        image_volume = np.expand_dims(image_rgb, axis=0)
+        print(image_volume.shape)
+        self.viewer_widget.load_dicom_series(image_volume)
+        self.viewer_widget.display_image(image_volume[0])
+
+        # Set the control sliders
+        slice_maximum = image_volume.shape[0] - 1
+        self.main_window.floating_controls_window.controls.slider.setMaximum(slice_maximum)
+        self.main_window.floating_controls_window.controls.slice_value_label.setText(f"1/{slice_maximum}")
+
+        #min_val = np.min(image_rgb)
+        #max_val = np.max(image_rgb)
+
+        #default_center = (max_val + min_val) // 2
+        #default_width = max_val - min_val
+
+        #self.viewer_widget.update_windowing(default_center, default_width)
+
+        print("end of loading")
+
+
+
     def open_dicom_file(self):
         from PyQt6.QtWidgets import QFileDialog
         import os

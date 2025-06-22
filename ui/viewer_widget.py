@@ -7,14 +7,18 @@ from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter
 
 import numpy as np
 import os
+
+from AI.SAM.sam_segmenter import SAMSegmenter
 from controllers.cine_loop_controller import CineController
-from ui.graphics_view import CustomGraphicsView
+from ui.graphics_view import CustomGraphicsView, InteractionMode
 from image_data_handling.data_manager import VolumeDataManager
 from ui.loading_widget import LoadingWidget
 
 class ViewerWidget(QWidget):
     def __init__(self, data_manager: VolumeDataManager = None, windowing_manager = None):
         super().__init__()
+
+        #self.sam = SAMSegmenter()
 
         self.data_manager = data_manager
         self.windowing_manager = windowing_manager
@@ -25,6 +29,10 @@ class ViewerWidget(QWidget):
 
         self.pixmap_item = QGraphicsPixmapItem()
         self.scene.addItem(self.pixmap_item)
+
+        self.mask_overlay_item = QGraphicsPixmapItem()
+        self.scene.addItem(self.mask_overlay_item)
+        self.mask_overlay_item.setZValue(1) # Draw on top of base image
 
         self.graphics_view.fitInView(self.pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
         #disable scrollbars so the image doesn't shift on wheel events
@@ -97,6 +105,10 @@ class ViewerWidget(QWidget):
         q_image = QImage(image_data_2d.tobytes(), width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
         self.current_pixmap = QPixmap.fromImage(q_image)
         self.pixmap_item.setPixmap(self.current_pixmap)
+
+        self.mask_overlay_item.setPixmap(QPixmap())  # Clear any existing mask
+        self.mask_overlay_item.setOffset(self.pixmap_item.offset())
+        self.mask_overlay_item.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
 
         self.graphics_view.resetTransform()
         self.graphics_view.fitInView(self.pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
@@ -239,6 +251,50 @@ class ViewerWidget(QWidget):
 
     def decrease_cine_speed(self):
         self.cine_controller.decrease_speed()
+
+####################### SAM
+
+    def enable_sam(self, enabled:bool):
+
+        self.sam_enabled = enabled
+        if enabled:
+            print("sam enabled!")
+            self.graphics_view.set_interaction_mode(InteractionMode.SAM)
+
+            """
+            import cv2
+
+            image_filename = "C:/Users/patri/GIT/dicomViewer/sample_medical_image.png" #"sample_medical_image.png"
+
+            # Read the image
+            image_bgr = cv2.imread(image_filename)
+            if image_bgr is None:
+                raise FileNotFoundError(f"Image not found at {image_filename}. Please check path and upload.")
+
+            # Convert to RGB (SAM expects RGB)
+            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+
+
+            #self.sam.set_image(image_rgb) #np.ndarray
+            """
+
+
+    def print_coord(self, x,y):
+        print(f"x: {x}, y: {y}")  #gets the position in scene clicked from the graphics_view
+
+
+    def segment_with_sam(self, x, y):
+        masks, _ = self.sam.segment((x,y), input_label= 1)
+        self.draw_mask_on_image(masks[0])
+
+    def draw_mask_on_image(self, mask):
+        colored_mask = np.zeros((*mask.shape, 4), dtype=np.uint8)
+        colored_mask[mask] = [255, 0, 0, 100] # Red transparent overlay
+        qimage = QImage(colored_mask.data, mask.shape[1], mask.shape[0], QImage.Format_RGBA8888)
+        pixmap = QPixmap.fromImage(qimage)
+        self.mask_overlay_item.setPixmap(pixmap)
+        self.mask_overlay_item.setOffset(self.pixmap_item.offset())
+
 
 
 
