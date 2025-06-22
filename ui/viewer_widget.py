@@ -1,13 +1,16 @@
+import cv2
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout,
     QFileDialog, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem
 )
-from PyQt6.QtCore import Qt, QTimer, QStandardPaths, QDir
+from PyQt6.QtCore import Qt, QTimer, QStandardPaths, QDir, QPointF, QThread
 from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter
 
 import numpy as np
 import os
-
+from AI.SAM.sam_worker import SAMWorker
+from image_data_handling.logic.mask_utils import overlay_mask, ensure_rgb
+from controllers.sam_controller import SAMController
 from AI.SAM.sam_segmenter import SAMSegmenter
 from controllers.cine_loop_controller import CineController
 from ui.graphics_view import CustomGraphicsView, InteractionMode
@@ -18,10 +21,13 @@ class ViewerWidget(QWidget):
     def __init__(self, data_manager: VolumeDataManager = None, windowing_manager = None):
         super().__init__()
 
-        #self.sam = SAMSegmenter()
+        self.sam = SAMSegmenter()
+        self.show_mask_overlay = False
 
         self.data_manager = data_manager
         self.windowing_manager = windowing_manager
+
+        self.sam_controller = SAMController(self.sam, self.data_manager)
 
         self.graphics_view = CustomGraphicsView(self)
         self.scene = QGraphicsScene()
@@ -81,6 +87,9 @@ class ViewerWidget(QWidget):
             Qt.Key.Key_4: "Bone"
         }
 
+        self.graphics_view.clicked_in_sam_mode.connect(self.on_sam_click)
+        self.overlay = None
+
 
     def resizeEvent(self, event):
         # When the viewer resizes, ensure the image fits properly
@@ -96,13 +105,26 @@ class ViewerWidget(QWidget):
         self.current_slice_index = 0
         #self.update_image(self.current_slice_index) #-> the image gets updated (and therefore windowed) when loading initially from the main Window
 
-    def display_image(self, image_data_2d):
-        """receives 2D array of type np.uint8 and displays it"""
+    def display_image(self, image_data):
+        """
+           Display a grayscale or RGB image using QImage/QPixmap.
+           Accepts:
+               - Grayscale: shape (H, W)
+               - RGB: shape (H, W, 3), dtype=uint8
+           """
 
-        height, width = image_data_2d.shape
-        bytes_per_line = width
+        if image_data.ndim ==2: #Grayscale
 
-        q_image = QImage(image_data_2d.tobytes(), width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
+            height, width = image_data.shape
+            bytes_per_line = width
+            q_image = QImage(image_data.tobytes(), width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
+        elif image_data.ndim == 3 and image_data.shape[2] == 3: #RGB
+            height, width, _ = image_data.shape
+            bytes_per_line = 3 * width
+            q_image = QImage(image_data.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+        else:
+            raise ValueError("Unsupported image shape for display")
+
         self.current_pixmap = QPixmap.fromImage(q_image)
         self.pixmap_item.setPixmap(self.current_pixmap)
 
@@ -131,6 +153,8 @@ class ViewerWidget(QWidget):
                 print("Warning: No DICOM headers available for display rescale. Displaying raw data.")
         elif self.data_manager and self.data_manager.current_data_type == "nifti":
             modality_slice_data = raw_slice_data #as get_fdata() already scales the data
+        else:
+            modality_slice_data = raw_slice_data #for Images (png/jpg) or as fallback if not dcm and not nifti
 
         processed = self.windowing_manager.apply(modality_slice_data, self.window_width, self.window_center)
         self.display_image(processed)
@@ -145,6 +169,7 @@ class ViewerWidget(QWidget):
         """Update the windowing"""
         self.window_center = center
         self.window_width = width
+
         self.update_image(self.current_slice_index)
 
         # Sync sliders
@@ -223,6 +248,9 @@ class ViewerWidget(QWidget):
         if key == Qt.Key.Key_P:
             self.toggle_cine_loop()
 
+        if key == Qt.Key.Key_O:
+            self.toggle_mask_overlay()
+
         super().keyPressEvent(event)
 
 
@@ -254,46 +282,78 @@ class ViewerWidget(QWidget):
 
 ####################### SAM
 
-    def enable_sam(self, enabled:bool):
 
-        self.sam_enabled = enabled
+    def on_sam_click(self, scene_pos:QPointF):
+        #print(f"Handling SAM click at: {scene_pos.x()}, {scene_pos.y()}")
+        x = int(scene_pos.x())
+        y = int(scene_pos.y())
+
+        self.graphics_view.setCursor(Qt.CursorShape.BusyCursor)
+        QApplication.processEvents()
+
+        # Get the current image
+        image_np = self.dicom_slices[self.current_slice_index]
+
+        # Create thread and worker
+        self.thread = QThread()
+        self.worker = SAMWorker(
+            sam_controller=self.sam_controller,
+            image_np=image_np,
+            click_point=(x, y),
+            slice_index=self.current_slice_index
+        )
+        self.worker.moveToThread(self.thread)
+
+        # Connect signals
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.on_sam_finished)
+        self.worker.error.connect(self.on_sam_error)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        # Start the thread
+        self.thread.start()
+
+    def enable_sam(self, enabled:bool):
         if enabled:
             print("sam enabled!")
             self.graphics_view.set_interaction_mode(InteractionMode.SAM)
 
-            """
-            import cv2
-
-            image_filename = "C:/Users/patri/GIT/dicomViewer/sample_medical_image.png" #"sample_medical_image.png"
-
-            # Read the image
-            image_bgr = cv2.imread(image_filename)
-            if image_bgr is None:
-                raise FileNotFoundError(f"Image not found at {image_filename}. Please check path and upload.")
-
-            # Convert to RGB (SAM expects RGB)
-            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
 
-            #self.sam.set_image(image_rgb) #np.ndarray
-            """
+    def toggle_mask_overlay(self):
+
+        if self.data_manager.mask_data is None or np.max(self.data_manager.mask_data[self.current_slice_index]) == 0:
+            print("No mask for current slice")
+            self.update_image(self.current_slice_index)
+            return
+
+        self.show_mask_overlay = not self.show_mask_overlay
+        if self.show_mask_overlay:
+            #print("showing overlay")
+            image = self.data_manager.volume_data[self.current_slice_index]
+            mask = self.data_manager.mask_data[self.current_slice_index]
+            image_rgb = ensure_rgb(image)  # Or however you convert grayscale to RGB
+            overlay = overlay_mask(image_rgb, mask)
+            self.display_image(overlay)
+
+        else:
+            #print("not showing overlay/ showing normal image")
+            self.display_image(self.data_manager.volume_data[self.current_slice_index])
+
+    def on_sam_finished(self, image_rgb: np.ndarray, best_mask: np.ndarray):
+        overlay = overlay_mask(image_rgb, best_mask)
+        self.display_image(overlay)
+        self.show_mask_overlay = True
+        self.graphics_view.setCursor(Qt.CursorShape.ArrowCursor)
+
+    def on_sam_error(self, error_message: str):
+        print(f"Error during SAM processing: {error_message}")
+        self.graphics_view.setCursor(Qt.CursorShape.ArrowCursor)
 
 
-    def print_coord(self, x,y):
-        print(f"x: {x}, y: {y}")  #gets the position in scene clicked from the graphics_view
 
-
-    def segment_with_sam(self, x, y):
-        masks, _ = self.sam.segment((x,y), input_label= 1)
-        self.draw_mask_on_image(masks[0])
-
-    def draw_mask_on_image(self, mask):
-        colored_mask = np.zeros((*mask.shape, 4), dtype=np.uint8)
-        colored_mask[mask] = [255, 0, 0, 100] # Red transparent overlay
-        qimage = QImage(colored_mask.data, mask.shape[1], mask.shape[0], QImage.Format_RGBA8888)
-        pixmap = QPixmap.fromImage(qimage)
-        self.mask_overlay_item.setPixmap(pixmap)
-        self.mask_overlay_item.setOffset(self.pixmap_item.offset())
 
 
 

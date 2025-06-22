@@ -13,6 +13,7 @@ class VolumeDataManager:
         self.original_dicom_headers = None
         self.nifti_affine_matrix = None
         self.current_data_type = None
+        self._mask_data = None # Holds binary masks per slice (same shape as volume)
 
     @property
     def volume_data(self):
@@ -22,6 +23,21 @@ class VolumeDataManager:
     def volume_data(self, data: np.ndarray):
         """Sets the raw 3d volume data"""
         self._volume_data = data
+
+    @property
+    def mask_data(self):
+        return self._mask_data
+
+    @mask_data.setter
+    def mask_data(self, masks: np.ndarray):
+        """
+        Set the 3D mask volume.
+        Shape must match volume_data (e.g. [N, H, W])
+        """
+        if masks.shape != self._volume_data.shape:
+            raise ValueError("Mask shape does not match volumew data shape")
+        self._mask_data = masks
+
 
     def set_original_dicom_headers(self, headers: list):
         self.current_data_type = "dicom"

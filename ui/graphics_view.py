@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication, QStackedLayout, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem, QLabel
-from PyQt6.QtCore import Qt, QTimer, QPointF, QPoint # Ensure QPoint is imported
+from PyQt6.QtCore import Qt, QTimer, QPointF, QPoint, pyqtSignal  # Ensure QPoint is imported
 from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter, QTransform
 import numpy as np
 import cv2
@@ -13,6 +13,8 @@ class InteractionMode(Enum):
 
 
 class CustomGraphicsView(QGraphicsView):
+    clicked_in_sam_mode = pyqtSignal(QPointF)  # Signal with the scene coords
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
@@ -57,11 +59,7 @@ class CustomGraphicsView(QGraphicsView):
                 pos_in_scene = self.mapToScene(pos)
                 print(f"Clicked at scene coordinates: x={pos_in_scene.x()}, y={pos_in_scene.y()}")
 
-                if self.viewer_widget:
-                    self.viewer_widget.print_coord(pos_in_scene.x(), pos_in_scene.y())
-
-                #pos = event.position().toPoint()
-                #self.viewer_widget.print_coords(pos.x(), pos.y())
+                self.clicked_in_sam_mode.emit(pos_in_scene)  # Emit signal with coords
 
                 event.accept()
             # In SAM mode, other mouse buttons might do nothing or specific SAM actions
