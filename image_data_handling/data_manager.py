@@ -15,6 +15,8 @@ class VolumeDataManager:
         self.current_data_type = None
         self._mask_data = None # Holds binary masks per slice (same shape as volume)
 
+        self.pixel_spacing = None
+
     @property
     def volume_data(self):
         return self._volume_data
@@ -43,6 +45,11 @@ class VolumeDataManager:
         self.current_data_type = "dicom"
         self.original_dicom_headers = headers
         self.nifti_affine_matrix = None #clear NIfTI specific data
+
+        if headers:
+            spacing = getattr(headers[0], "PixelSpacing", [1.0, 1.0]) # [row_spacing, col_spacing]#
+            self.pixel_spacing = [float(spacing[0]), float(spacing[1])]
+            print(f"Pixel spacing set to: {self.pixel_spacing}")
 
     def set_nifti_affine_matrix(self, affine: np.ndarray):
         self.current_data_type = "nifti"

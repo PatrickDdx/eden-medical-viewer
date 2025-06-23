@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QGraphicsScene, QGraphicsPixmapItem
 )
 from PyQt6.QtCore import Qt, QPointF, QThread
-from PyQt6.QtGui import QPixmap, QImage
+from PyQt6.QtGui import QPixmap, QImage, QPen
 
 import numpy as np
 import os
@@ -90,6 +90,11 @@ class ViewerWidget(QWidget):
         self.graphics_view.clicked_in_sam_mode.connect(self.on_sam_click)
         self.overlay = None
 
+        #Measure
+        self.line_item = None
+        self.text_item = None
+
+        self.graphics_view.send_measurement_points.connect(self.on_measure)
 
     def resizeEvent(self, event):
         # When the viewer resizes, ensure the image fits properly
@@ -337,5 +342,42 @@ class ViewerWidget(QWidget):
         print(f"Error during SAM processing: {error_message}")
         #self.graphics_view.setCursor(Qt.CursorShape.ArrowCursor)
 
+####################### Measure
 
+    def enable_measure(self, checked:bool = False):
+        if not checked:
+            self.graphics_view.set_interaction_mode(InteractionMode.NONE)
+        else:
+            self.graphics_view.set_interaction_mode(InteractionMode.MEASURE)
+        print(self.graphics_view._mode)
+
+    def on_measure(self, p1:QPointF, p2:QPointF):
+        print(f"point 1: {p1}, point 2: {p2}")
+        pixel_spacing = self.data_manager.pixel_spacing
+        dy = (p2.y() - p1.y()) * pixel_spacing[0]
+        dx = (p2.x() - p1.x()) * pixel_spacing[1]
+        distance = np.sqrt(dx**2 + dy**2)
+        print(f"distance: {distance}")
+
+        print("Scene:", self.scene)
+        print("LineItem:", self.line_item)
+        print("TextItem:", self.text_item)
+
+        # Remove old line/text
+        if self.line_item:
+            self.scene.removeItem(self.line_item)
+        if self.text_item:
+            self.scene.removeItem(self.text_item)
+
+        import threading
+        print("THREAD:", threading.current_thread().name)
+
+        print("removed")
+        self.line_item = self.scene.addLine(p1.x(), p1.y(), p2.x(), p2.y(), QPen(Qt.GlobalColor.red, 2))
+
+        print("line added")
+        mid_x = (p1.x() + p2.x()) / 2
+        mid_y = (p1.y() + p2.y()) / 2
+        self.text_item = self.scene.addText(f"{distance:.2f} mm")
+        self.text_item.setPos(mid_x, mid_y)
 

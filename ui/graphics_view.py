@@ -10,10 +10,12 @@ class InteractionMode(Enum):
     PAN = 1
     WINDOWING = 2
     SAM = 3
+    MEASURE = 4
 
 
 class CustomGraphicsView(QGraphicsView):
     clicked_in_sam_mode = pyqtSignal(QPointF)  # Signal with the scene coords
+    send_measurement_points = pyqtSignal(QPointF, QPointF) #Signal with the two points for measurement
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -40,6 +42,9 @@ class CustomGraphicsView(QGraphicsView):
 
         self.viewer_widget = parent if isinstance(parent, QWidget) else None  # Reference to the parent ViewerWidget
 
+        # for measuring
+        self.start_point = None
+
     #def enterEvent(self, event):
     #    self.setCursor(Qt.CursorShape.OpenHandCursor)
 
@@ -65,6 +70,33 @@ class CustomGraphicsView(QGraphicsView):
             # In SAM mode, other mouse buttons might do nothing or specific SAM actions
             return  # Don't fall through to other modes
 
+
+        #Measure
+        if self._mode == InteractionMode.MEASURE:
+            if event.button() == Qt.MouseButton.LeftButton:
+                pos = self.mapToScene(event.position().toPoint())
+
+                if not self.start_point:
+                    self.start_point = pos
+                    print(f"start: {self.start_point}")
+                else:
+                    end_point = pos
+                    #self.draw_measurement(self.start_point, end_point)
+                    print(f"end {end_point}")
+                    self.send_measurement_points.emit(self.start_point, end_point)
+                    self.start_point = None  # Reset for next measurement
+
+
+                    event.accept()
+
+            elif event.button() == Qt.MouseButton.RightButton and self._mode == InteractionMode.MEASURE:
+                self._mode = InteractionMode.NONE
+                self.setCursor(Qt.CursorShape.ArrowCursor)
+                self.start_point = None
+                event.accept()
+                return
+
+            return
 
         if event.button() == Qt.MouseButton.LeftButton:
             self._mode = InteractionMode.PAN
@@ -108,6 +140,11 @@ class CustomGraphicsView(QGraphicsView):
             super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+
+        if self._mode == InteractionMode.MEASURE:
+            event.accept()
+            return
+
         if event.button() == Qt.MouseButton.LeftButton:
             self._mode = InteractionMode.NONE
             self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -136,6 +173,8 @@ class CustomGraphicsView(QGraphicsView):
             self._mode = mode
             if mode == InteractionMode.SAM:
                 self.setCursor(Qt.CursorShape.CrossCursor)  # Or a custom SAM cursor
+            elif mode == InteractionMode.MEASURE:
+                self.setCursor(Qt.CursorShape.CrossCursor)
             else:
                 self.setCursor(Qt.CursorShape.ArrowCursor)  # Default cursor when not in SAM mode
 
@@ -171,3 +210,4 @@ class CustomGraphicsView(QGraphicsView):
         y = max(0, min(image_coords.y(), image_height - 1))
 
         return QPoint(x, y)
+

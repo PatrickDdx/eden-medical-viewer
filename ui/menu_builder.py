@@ -51,6 +51,11 @@ def _build_ai_menu(window, menu):
     sam_action.toggled.connect(window.viewer_widget.enable_sam)
     ai_menu.addAction(sam_action)
 
+    measure_action = QAction("Measure", window)
+    measure_action.setCheckable(True)
+    measure_action.toggled.connect(window.viewer_widget.enable_measure)
+    ai_menu.addAction(measure_action)
+
 def _build_view_menu(window, menu):
     view_menu = menu.addMenu("View")
 
