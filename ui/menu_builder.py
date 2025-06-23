@@ -16,15 +16,17 @@ def _build_file_menu(window, menu):
     open_image_action.triggered.connect(window.open_image_func)
     file_menu.addAction(open_image_action)
 
-    exit_action = QAction("Exit", window)
-    exit_action.triggered.connect(window.close_application)
-    file_menu.addAction(exit_action)
-
     file_menu.addSeparator()
 
     save_action = QAction("Save", window)
     save_action.triggered.connect(window.show_save_dialog)
     file_menu.addAction(save_action)
+
+    file_menu.addSeparator()
+
+    exit_action = QAction("Exit", window)
+    exit_action.triggered.connect(window.close_application)
+    file_menu.addAction(exit_action)
 
 def _build_windowing_menu(window, menu):
     window_presets_menu = menu.addMenu("Windowing")
@@ -51,11 +53,6 @@ def _build_ai_menu(window, menu):
     sam_action.toggled.connect(window.viewer_widget.enable_sam)
     ai_menu.addAction(sam_action)
 
-    measure_action = QAction("Measure", window)
-    measure_action.setCheckable(True)
-    measure_action.toggled.connect(window.viewer_widget.enable_measure)
-    ai_menu.addAction(measure_action)
-
 def _build_view_menu(window, menu):
     view_menu = menu.addMenu("View")
 
@@ -77,6 +74,11 @@ def _build_tools_menu(window, menu):
     toggle_floating_controls = QAction("Floating Controls", window)
     toggle_floating_controls.triggered.connect(lambda x: window.toggle_floating_controls(True))
     tools_menu.addAction(toggle_floating_controls)
+
+    measure_action = QAction("Measure", window)
+    measure_action.setCheckable(True)
+    measure_action.toggled.connect(window.viewer_widget.enable_measure)
+    tools_menu.addAction(measure_action)
 
 def _build_help_menu(window, menu):
     help_menu = menu.addMenu("Help")

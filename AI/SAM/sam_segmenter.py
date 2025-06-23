@@ -7,7 +7,7 @@ from segment_anything import sam_model_registry, SamPredictor
 class SAMSegmenter:
     def __init__(self, model_type="vit_b", checkpoint_path="C:/Users/patri/GIT/dicomViewer/AI/SAM/sam_vit_b_01ec64.pth"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"device: {self.device}")
+        #print(f"device: {self.device}")
         self.model = sam_model_registry[model_type](checkpoint=checkpoint_path)
         self.model.to(self.device)
         self.predictor = SamPredictor(self.model)

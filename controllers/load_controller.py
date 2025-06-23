@@ -14,35 +14,35 @@ class LoadController:
 
         image_filename, _ = QFileDialog.getOpenFileName(None, "Open Image File", "", "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (*.bmp);;All Files (*)") # "sample_medical_image.png"
 
-        # Read the image
-        image_grayscale = cv2.imread(image_filename)
-        if image_grayscale is None:
-            raise FileNotFoundError(f"Image not found at {image_filename}. Please check path and upload.")
+        if image_filename:
 
-        # Convert to RGB (SAM expects RGB)
-        image_rgb = cv2.cvtColor(image_grayscale, cv2.COLOR_BGR2GRAY) #shape (x,y)
+            # Read the image
+            image_grayscale = cv2.imread(image_filename)
+            if image_grayscale is None:
+                raise FileNotFoundError(f"Image not found at {image_filename}. Please check path and upload.")
 
-        image_volume = np.expand_dims(image_rgb, axis=0)
-        print(image_volume.shape)
-        self.viewer_widget.load_dicom_series(image_volume)
-        #self.viewer_widget.display_image(image_volume[0])
+            # Convert to RGB (SAM expects RGB)
+            image_rgb = cv2.cvtColor(image_grayscale, cv2.COLOR_BGR2GRAY) #shape (x,y)
 
-        # Set the control sliders
-        slice_maximum = image_volume.shape[0] - 1
-        self.main_window.floating_controls_window.controls.slider.setMaximum(slice_maximum)
-        self.main_window.floating_controls_window.controls.slice_value_label.setText(f"1/{slice_maximum+1}")
+            image_volume = np.expand_dims(image_rgb, axis=0)
+            print(image_volume.shape)
+            self.viewer_widget.load_dicom_series(image_volume)
 
-        min_val = np.min(image_grayscale)
-        max_val = np.max(image_grayscale)
+            # Set the control sliders
+            slice_maximum = image_volume.shape[0] - 1
+            self.main_window.floating_controls_window.controls.slider.setMaximum(slice_maximum)
+            self.main_window.floating_controls_window.controls.slice_value_label.setText(f"1/{slice_maximum+1}")
 
-        default_center = (max_val + min_val) // 2
-        default_width = max_val - min_val
+            min_val = np.min(image_grayscale)
+            max_val = np.max(image_grayscale)
 
-        #print(f"default: -width: {default_width}, -level: {default_center}")
+            default_center = (max_val + min_val) // 2
+            default_width = max_val - min_val
 
-        self.viewer_widget.update_windowing(default_center, default_width)
+            #print(f"default: -width: {default_width}, -level: {default_center}")
 
-        #print("end of loading")
+            self.viewer_widget.update_windowing(default_center, default_width)
+
 
 
 

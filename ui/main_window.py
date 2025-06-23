@@ -114,9 +114,8 @@ class MainWindow(QMainWindow):
         _build_help_menu(self, menu)
 
     def toggle_floating_controls(self, checked):
-        """Makes the floating control window visible"""
-        self.floating_controls_window.setVisible(checked)
-        print(f"Floating controls visibility toggled to {checked}")
+        """Toggles the visibility of  the floating control window on/off"""
+        self.floating_controls_window.setVisible(not checked == self.floating_controls_window.isVisible())
 
     def open_dicom_file_func(self):
         """Open a DICOM file via QFileDialog and start threaded loading"""

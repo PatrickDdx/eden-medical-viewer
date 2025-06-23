@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QGraphicsScene, QGraphicsPixmapItem
 )
 from PyQt6.QtCore import Qt, QPointF, QThread
-from PyQt6.QtGui import QPixmap, QImage, QPen
+from PyQt6.QtGui import QPixmap, QImage, QPen, QColor, QFont
 
 import numpy as np
 import os
@@ -256,6 +256,9 @@ class ViewerWidget(QWidget):
         if key == Qt.Key.Key_O:
             self.toggle_mask_overlay()
 
+        if key == Qt.Key.Key_M:
+            self.enable_measure(not self.graphics_view._mode == InteractionMode.MEASURE)
+
         super().keyPressEvent(event)
 
 
@@ -309,7 +312,7 @@ class ViewerWidget(QWidget):
 
     def enable_sam(self, enabled:bool):
         if enabled:
-            print("sam enabled!")
+            #print("sam enabled!")
             self.graphics_view.set_interaction_mode(InteractionMode.SAM)
 
     def toggle_mask_overlay(self):
@@ -352,16 +355,11 @@ class ViewerWidget(QWidget):
         print(self.graphics_view._mode)
 
     def on_measure(self, p1:QPointF, p2:QPointF):
-        print(f"point 1: {p1}, point 2: {p2}")
+        #print(f"point 1: {p1}, point 2: {p2}")
         pixel_spacing = self.data_manager.pixel_spacing
         dy = (p2.y() - p1.y()) * pixel_spacing[0]
         dx = (p2.x() - p1.x()) * pixel_spacing[1]
         distance = np.sqrt(dx**2 + dy**2)
-        print(f"distance: {distance}")
-
-        print("Scene:", self.scene)
-        print("LineItem:", self.line_item)
-        print("TextItem:", self.text_item)
 
         # Remove old line/text
         if self.line_item:
@@ -369,15 +367,27 @@ class ViewerWidget(QWidget):
         if self.text_item:
             self.scene.removeItem(self.text_item)
 
-        import threading
-        print("THREAD:", threading.current_thread().name)
 
-        print("removed")
-        self.line_item = self.scene.addLine(p1.x(), p1.y(), p2.x(), p2.y(), QPen(Qt.GlobalColor.red, 2))
-
-        print("line added")
         mid_x = (p1.x() + p2.x()) / 2
         mid_y = (p1.y() + p2.y()) / 2
-        self.text_item = self.scene.addText(f"{distance:.2f} mm")
-        self.text_item.setPos(mid_x, mid_y)
+
+        try:
+            # Use a smooth, semi-transparent light blue line with subtle anti-aliasing
+            pen = QPen(QColor(0, 122, 255, 200))  # Apple's "system blue" (iOS/macOS default)
+            pen.setWidthF(1.5)
+            pen.setCosmetic(True)  # Makes the line width consistent regardless of zoom
+
+            self.line_item = self.scene.addLine(p1.x(), p1.y(), p2.x(), p2.y(), pen)
+
+            # Font with San Francisco feel (or fallback)
+            font = QFont("Helvetica Neue")  # Or "San Francisco" on macOS, "Segoe UI" on Windows
+            font.setPointSize(10)
+            font.setWeight(QFont.Weight.Medium)
+
+            self.text_item = self.scene.addText(f"{distance:.2f} mm", font)
+            self.text_item.setDefaultTextColor(QColor(255, 255, 255))  # Soft dark gray
+            self.text_item.setPos(mid_x + 5, mid_y + 5)  # Slight offset for better readability
+
+        except Exception as e:
+            print(f"CRASH in measurement draw: {e}")
 

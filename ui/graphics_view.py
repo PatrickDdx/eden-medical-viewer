@@ -56,13 +56,13 @@ class CustomGraphicsView(QGraphicsView):
         # Always check the current _mode first
         if self._mode == InteractionMode.SAM:
             if event.button() == Qt.MouseButton.LeftButton:
-                print("left click while interaction mode == sam")
+                #print("left click while interaction mode == sam")
                 self._mode= InteractionMode.NONE
                 pos = event.position().toPoint()
                 print(pos)
 
                 pos_in_scene = self.mapToScene(pos)
-                print(f"Clicked at scene coordinates: x={pos_in_scene.x()}, y={pos_in_scene.y()}")
+                #print(f"Clicked at scene coordinates: x={pos_in_scene.x()}, y={pos_in_scene.y()}")
 
                 self.clicked_in_sam_mode.emit(pos_in_scene)  # Emit signal with coords
 
@@ -78,11 +78,11 @@ class CustomGraphicsView(QGraphicsView):
 
                 if not self.start_point:
                     self.start_point = pos
-                    print(f"start: {self.start_point}")
+                    #print(f"start: {self.start_point}")
                 else:
                     end_point = pos
                     #self.draw_measurement(self.start_point, end_point)
-                    print(f"end {end_point}")
+                    #print(f"end {end_point}")
                     self.send_measurement_points.emit(self.start_point, end_point)
                     self.start_point = None  # Reset for next measurement
 
@@ -169,7 +169,7 @@ class CustomGraphicsView(QGraphicsView):
         # You might want to add logic here to reset cursors or other states
         # when the mode changes.
         if self._mode != mode:
-            print(f"Interaction mode changed from {self._mode.name} to {mode.name}")
+            #print(f"Interaction mode changed from {self._mode.name} to {mode.name}")
             self._mode = mode
             if mode == InteractionMode.SAM:
                 self.setCursor(Qt.CursorShape.CrossCursor)  # Or a custom SAM cursor
