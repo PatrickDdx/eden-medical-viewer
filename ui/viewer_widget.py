@@ -15,6 +15,7 @@ from controllers.cine_loop_controller import CineController
 from ui.graphics_view import CustomGraphicsView, InteractionMode
 from image_data_handling.data_manager import VolumeDataManager
 from ui.loading_widget import LoadingWidget
+from ui.toast_api import toast
 
 class ViewerWidget(QWidget):
     def __init__(self, data_manager: VolumeDataManager = None, windowing_manager = None):
@@ -96,19 +97,25 @@ class ViewerWidget(QWidget):
 
         self.graphics_view.send_measurement_points.connect(self.on_measure)
 
+        self.measurement_items = []
+
+        self.show_mask_overlay_mode = False
+
     def resizeEvent(self, event):
         # When the viewer resizes, ensure the image fits properly
         if self.current_pixmap and not self.current_pixmap.isNull():
             self.graphics_view.fitInView(self.pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
         super().resizeEvent(event)
 
-    def load_dicom_series(self, volume_data: np.ndarray):
+    def load_volume_series(self, volume_data: np.ndarray):
         """Takes a 3D NumPy array and sets up the viewer."""
         self.dicom_slices = volume_data
         if self.data_manager:
             self.data_manager.volume_data = volume_data
+            self.data_manager.slice_measurements = {} #clerar measurements form series before
         self.current_slice_index = 0
         #self.update_image(self.current_slice_index) #-> the image gets updated (and therefore windowed) when loading initially from the main Window
+        self.delete_all_measurements()
 
     def display_image(self, image_data):
         """
@@ -155,14 +162,24 @@ class ViewerWidget(QWidget):
             else:
                 # Fallback if no headers or data_manager is set
                 modality_slice_data = raw_slice_data
-                print("Warning: No DICOM headers available for display rescale. Displaying raw data.")
+                toast("Warning: No DICOM headers available for display rescale. Displaying raw data.")
         elif self.data_manager and self.data_manager.current_data_type == "nifti":
             modality_slice_data = raw_slice_data #as get_fdata() already scales the data
         else:
             modality_slice_data = raw_slice_data #for Images (png/jpg) or as fallback if not dcm and not nifti
 
         processed = self.windowing_manager.apply(modality_slice_data, self.window_width, self.window_center)
-        self.display_image(processed)
+
+        if self.show_mask_overlay and self.data_manager.mask_data is not None:
+            mask = self.data_manager.mask_data[self.current_slice_index]
+            if np.any(mask):  # mask exists for this slice
+                self.display_mask_overlay()
+            else:
+                self.display_image(processed)
+        else:
+            self.display_image(processed)
+
+        self.update_measurements_on_scene()
 
         # IMPORTANT: When the image is updated by non-slider means (e.g., cine loop, key press, wheel event),
         # we update the slider's value directly. The slider's valueChanged signal will then trigger
@@ -196,7 +213,7 @@ class ViewerWidget(QWidget):
             self.update_image(self.current_slice_index)
 
     def get_current_window(self):
-        print(f"width: {self.window_width}, level: {self.window_center}")
+        toast(f"width: {self.window_width}, level: {self.window_center}")
 
     def wheelEvent(self, event):
         if self.dicom_slices is None:
@@ -254,13 +271,15 @@ class ViewerWidget(QWidget):
             self.toggle_cine_loop()
 
         if key == Qt.Key.Key_O:
-            self.toggle_mask_overlay()
+            # Toggle mask mode
+            self.show_mask_overlay = not self.show_mask_overlay
+            self.update_image(self.current_slice_index)  # Refresh current view
+            toast(f"Mask overlay {'enabled' if self.show_mask_overlay else 'disabled'}")
 
         if key == Qt.Key.Key_M:
             self.enable_measure(not self.graphics_view._mode == InteractionMode.MEASURE)
 
         super().keyPressEvent(event)
-
 
 ####################################################### Loading animation
     def hide_loading_animation(self):
@@ -312,37 +331,40 @@ class ViewerWidget(QWidget):
 
     def enable_sam(self, enabled:bool):
         if enabled:
+            toast("SAM enabled. Choose a something to segment.")
             #print("sam enabled!")
             self.graphics_view.set_interaction_mode(InteractionMode.SAM)
 
     def toggle_mask_overlay(self):
 
         if self.data_manager.mask_data is None or np.max(self.data_manager.mask_data[self.current_slice_index]) == 0:
-            print("No mask for current slice")
+            toast("No mask for current slice")
             self.update_image(self.current_slice_index)
             return
 
         self.show_mask_overlay = not self.show_mask_overlay
         if self.show_mask_overlay:
-            #print("showing overlay")
-            raw_image = self.data_manager.volume_data[self.current_slice_index]
-            windowed_image = self.windowing_manager.apply(raw_image, self.window_width, self.window_center)
-
-            mask = self.data_manager.mask_data[self.current_slice_index]
-            image_rgb = ensure_rgb(windowed_image)  # Or however you convert grayscale to RGB
-            overlay = overlay_mask(image_rgb, mask)
-            self.display_image(overlay)
-
+            self.display_mask_overlay()
         else:
             #print("not showing overlay/ showing normal image")
             self.update_image(self.current_slice_index)
+
+    def display_mask_overlay(self):
+        # print("showing overlay")
+        raw_image = self.data_manager.volume_data[self.current_slice_index]
+        windowed_image = self.windowing_manager.apply(raw_image, self.window_width, self.window_center)
+
+        mask = self.data_manager.mask_data[self.current_slice_index]
+        image_rgb = ensure_rgb(windowed_image)  # Or however you convert grayscale to RGB
+        overlay = overlay_mask(image_rgb, mask)
+        self.display_image(overlay)
 
     def on_sam_finished(self):
             self.toggle_mask_overlay()
             #self.graphics_view.setCursor(Qt.CursorShape.ArrowCursor)
 
     def on_sam_error(self, error_message: str):
-        print(f"Error during SAM processing: {error_message}")
+        toast(f"Error during SAM processing: {error_message}")
         #self.graphics_view.setCursor(Qt.CursorShape.ArrowCursor)
 
 ####################### Measure
@@ -352,42 +374,50 @@ class ViewerWidget(QWidget):
             self.graphics_view.set_interaction_mode(InteractionMode.NONE)
         else:
             self.graphics_view.set_interaction_mode(InteractionMode.MEASURE)
-        print(self.graphics_view._mode)
 
     def on_measure(self, p1:QPointF, p2:QPointF):
         #print(f"point 1: {p1}, point 2: {p2}")
-        pixel_spacing = self.data_manager.pixel_spacing
-        dy = (p2.y() - p1.y()) * pixel_spacing[0]
-        dx = (p2.x() - p1.x()) * pixel_spacing[1]
-        distance = np.sqrt(dx**2 + dy**2)
+        self.data_manager.add_measurement(self.current_slice_index, p1, p2)
+        self.update_measurements_on_scene()
 
-        # Remove old line/text
-        if self.line_item:
-            self.scene.removeItem(self.line_item)
-        if self.text_item:
-            self.scene.removeItem(self.text_item)
+    def update_measurements_on_scene(self):
+        # Remove old items
+        for item in getattr(self, 'measurement_items', []):
+            self.scene.removeItem(item)
+        self.measurement_items = []
 
+        measurements = self.data_manager.get_measurements(self.current_slice_index)
+        if not measurements:
+            return
 
-        mid_x = (p1.x() + p2.x()) / 2
-        mid_y = (p1.y() + p2.y()) / 2
+        pixel_spacing = self.data_manager.pixel_spacing or [1.0, 1.0]
+        font = QFont("Helvetica Neue")
+        font.setPointSize(10)
+        font.setWeight(QFont.Weight.Medium)
+        pen = QPen(QColor(0, 122, 255, 200))
+        pen.setWidthF(1.5)
+        pen.setCosmetic(True)
 
-        try:
-            # Use a smooth, semi-transparent light blue line with subtle anti-aliasing
-            pen = QPen(QColor(0, 122, 255, 200))  # Apple's "system blue" (iOS/macOS default)
-            pen.setWidthF(1.5)
-            pen.setCosmetic(True)  # Makes the line width consistent regardless of zoom
+        for p1, p2 in measurements:
+            dy = (p2.y() - p1.y()) * pixel_spacing[0]
+            dx = (p2.x() - p1.x()) * pixel_spacing[1]
+            distance = np.sqrt(dx ** 2 + dy ** 2)
 
-            self.line_item = self.scene.addLine(p1.x(), p1.y(), p2.x(), p2.y(), pen)
+            line = self.scene.addLine(p1.x(), p1.y(), p2.x(), p2.y(), pen)
+            mid_x = (p1.x() + p2.x()) / 2
+            mid_y = (p1.y() + p2.y()) / 2
+            text = self.scene.addText(f"{distance:.2f} mm", font)
+            text.setDefaultTextColor(QColor(255, 255, 255))
+            text.setPos(mid_x + 5, mid_y + 5)
 
-            # Font with San Francisco feel (or fallback)
-            font = QFont("Helvetica Neue")  # Or "San Francisco" on macOS, "Segoe UI" on Windows
-            font.setPointSize(10)
-            font.setWeight(QFont.Weight.Medium)
+            self.measurement_items.extend([line, text])
 
-            self.text_item = self.scene.addText(f"{distance:.2f} mm", font)
-            self.text_item.setDefaultTextColor(QColor(255, 255, 255))  # Soft dark gray
-            self.text_item.setPos(mid_x + 5, mid_y + 5)  # Slight offset for better readability
+    def delete_all_measurements(self):
+        # Clear existing measurement visuals
+        for item in getattr(self, 'measurement_items', []):
+            self.scene.removeItem(item)
+        self.measurement_items = []
 
-        except Exception as e:
-            print(f"CRASH in measurement draw: {e}")
+        self.data_manager.slice_measurements = {}
+
 

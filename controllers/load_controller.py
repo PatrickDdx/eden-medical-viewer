@@ -1,3 +1,5 @@
+from ui.toast_api import toast
+
 class LoadController:
     def __init__(self, main_window, data_manager, viewer_widget, metadata_viewer):
         self.main_window = main_window
@@ -25,8 +27,8 @@ class LoadController:
             image_rgb = cv2.cvtColor(image_grayscale, cv2.COLOR_BGR2GRAY) #shape (x,y)
 
             image_volume = np.expand_dims(image_rgb, axis=0)
-            print(image_volume.shape)
-            self.viewer_widget.load_dicom_series(image_volume)
+            #print(image_volume.shape)
+            self.viewer_widget.load_volume_series(image_volume)
 
             # Set the control sliders
             slice_maximum = image_volume.shape[0] - 1
@@ -97,7 +99,7 @@ class LoadController:
         self.viewer_widget.hide_loading_animation()
 
         # Update your UI with the loaded data
-        self.viewer_widget.load_dicom_series(volume)
+        self.viewer_widget.load_volume_series(volume)
         self.viewer_widget.update_windowing(default_center, default_width)
 
         if metadata_dict is None:
@@ -116,4 +118,4 @@ class LoadController:
         self.viewer_widget.hide_loading_animation()
 
         # Show an error message to the user
-        print("Loading Error", f"Failed to load DICOM series:\n{error_message}")
+        toast(f"Loading Error. Failed to load:\n{error_message}")

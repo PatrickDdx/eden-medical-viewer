@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import (
 
 import os
 
+from ui.toast_api import toast
+
 class SaveDialog(QDialog):
 
     #Signal emitted when the user clicks "Save"
@@ -143,7 +145,7 @@ class SaveDialog(QDialog):
             self.save_requested.emit(selected_format, file_path)
             self.accept()  # Close the dialog
         else:
-            print("No Save Location. Please select a save location.")
+            toast("No Save Location. Please select a save location.")
 
 
 

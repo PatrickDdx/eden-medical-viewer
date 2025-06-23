@@ -80,5 +80,9 @@ def _build_tools_menu(window, menu):
     measure_action.toggled.connect(window.viewer_widget.enable_measure)
     tools_menu.addAction(measure_action)
 
+    delete_measurements_action = QAction("Delete Measurements", window)
+    delete_measurements_action.triggered.connect(window.viewer_widget.delete_all_measurements)
+    tools_menu.addAction(delete_measurements_action)
+
 def _build_help_menu(window, menu):
     help_menu = menu.addMenu("Help")

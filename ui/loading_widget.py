@@ -20,7 +20,7 @@ class LoadingWidget(QWidget):
         if self.loading_movie.isValid():
             self.loading_animation_label.setMovie(self.loading_movie)
         else:
-            print("Warning: Loading GIF not found or invalid. Using text placeholder.")
+            #print("Warning: Loading GIF not found or invalid. Using text placeholder.")
             self.loading_animation_label.setText("Loading...")
             self.loading_animation_label.setStyleSheet("color: white;")  # Example style
 

@@ -4,6 +4,7 @@ from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter, QTransform
 import numpy as np
 import cv2
 from enum import Enum
+from ui.toast_api import toast
 
 class InteractionMode(Enum):
     NONE = 0
@@ -59,7 +60,7 @@ class CustomGraphicsView(QGraphicsView):
                 #print("left click while interaction mode == sam")
                 self._mode= InteractionMode.NONE
                 pos = event.position().toPoint()
-                print(pos)
+                #print(pos)
 
                 pos_in_scene = self.mapToScene(pos)
                 #print(f"Clicked at scene coordinates: x={pos_in_scene.x()}, y={pos_in_scene.y()}")
@@ -191,7 +192,7 @@ class CustomGraphicsView(QGraphicsView):
         """
         if not self.viewer_widget or not self.viewer_widget.pixmap_item:
             # Handle case where pixmap_item is not available
-            print("Warning: pixmap_item not available for coordinate mapping. Returning (0,0).")
+            toast("Warning: pixmap_item not available for coordinate mapping. Returning (0,0).")
             return QPoint(0, 0)
 
         # 1. Map from view coordinates to scene coordinates

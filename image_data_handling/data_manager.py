@@ -4,6 +4,7 @@ from image_data_handling.exporters.dicom_exporter import export_dicom_series
 from image_data_handling.exporters.nifti_exporter import export_nifti
 from image_data_handling.exporters.video_exporter import export_as_mp4
 from image_data_handling.exporters.image_exporter import export_slice_image
+from ui.toast_api import toast
 
 
 class VolumeDataManager:
@@ -14,8 +15,8 @@ class VolumeDataManager:
         self.nifti_affine_matrix = None
         self.current_data_type = None
         self._mask_data = None # Holds binary masks per slice (same shape as volume)
-
-        self.pixel_spacing = None
+        self.slice_measurements = {} # {slice_index: [(p1, p2), ...]}
+        self.pixel_spacing = None # to calculate distance in real space
 
     @property
     def volume_data(self):
@@ -49,7 +50,7 @@ class VolumeDataManager:
         if headers:
             spacing = getattr(headers[0], "PixelSpacing", [1.0, 1.0]) # [row_spacing, col_spacing]#
             self.pixel_spacing = [float(spacing[0]), float(spacing[1])]
-            print(f"Pixel spacing set to: {self.pixel_spacing}")
+            #print(f"Pixel spacing set to: {self.pixel_spacing}")
 
     def set_nifti_affine_matrix(self, affine: np.ndarray):
         self.current_data_type = "nifti"
@@ -79,8 +80,15 @@ class VolumeDataManager:
 
         return raw_slice_data * slope + intercept
 
+    def add_measurement(self, slice_index: int, p1, p2):
+        if slice_index not in self.slice_measurements:
+            self.slice_measurements[slice_index] = []
+        self.slice_measurements[slice_index].append((p1, p2))
 
-#################### Saving functions
+    def get_measurements(self, slice_index: int):
+        return self.slice_measurements.get(slice_index, [])
+
+    #################### Saving functions
 
     def save_current_slice(self, file_path, slice_index, ww, wl):
         try:
@@ -92,27 +100,27 @@ class VolumeDataManager:
             success = export_slice_image(raw_slice, ww, wl, self.apply_windowing_internal, file_path)
 
             if success:
-                print(f"Slice saved to {file_path}")
+                toast(f"Slice saved to {file_path}")
             else:
-                print(f"Failed to save slice to {file_path}")
+                toast(f"Failed to save slice to {file_path}")
 
         except Exception as e:
-            print(f"Error saving current slice: {e}")
+            toast(f"Error saving current slice: {e}")
 
 
     def save_as_dicom(self, directory_path):
         try:
             export_dicom_series(self.volume_data, self.original_dicom_headers, directory_path)
-            print(f"DICOM series saved to {directory_path}")
+            toast(f"DICOM series saved to {directory_path}")
         except Exception as e:
-            print(f"Error saving DICOM series: {e}")
+            toast(f"Error saving DICOM series: {e}")
 
     def save_as_nifti(self, file_path):
         try:
             export_nifti(self.volume_data, self.nifti_affine_matrix, file_path)
-            print(f"NIfTI saved to {file_path}")
+            toast(f"NIfTI saved to {file_path}")
         except Exception as e:
-            print(f"Error saving NIfTI: {e}")
+            toast(f"Error saving NIfTI: {e}")
 
     def save_as_mp4(self, file_path, cine_interval, window_width, window_level):
         """Exports the current volume as MP4 video"""
@@ -132,6 +140,8 @@ class VolumeDataManager:
                     return self.apply_windowing_internal(index_or_img, window_width, window_level)
 
             export_as_mp4(self.volume_data, file_path, fps, self.current_data_type, frame_callback)
-            print(f"MP4 saved to {file_path}")
+            toast(f"MP4 saved to {file_path}")
         except Exception as e:
-            print(f"Error saving MP4: {e}")
+            toast(f"Error saving MP4: {e}")
+
+

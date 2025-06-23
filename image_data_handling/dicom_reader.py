@@ -3,6 +3,7 @@ import numpy as np
 import os
 from concurrent.futures import ThreadPoolExecutor
 import time
+from ui.toast_api import toast
 
 class DicomReader():
     def __init__(self):
@@ -28,7 +29,7 @@ class DicomReader():
         files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.lower().endswith(".dcm")]
 
         if not files:
-            print("No files found")
+            toast("No files found")
             return
 
         processed_data = []
@@ -63,7 +64,7 @@ class DicomReader():
 
         end_time = time.time()
         total_time = end_time - start_time
-        print(f"{total_time} seconds needed to open {len(files)} DICOM files in {folder_path}")
+        #toast(f"{total_time} seconds needed to open {len(files)} DICOM files in {folder_path}")
 
         return volume, window_center, window_width, metadata, list(sorted_datasets)
 

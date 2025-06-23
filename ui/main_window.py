@@ -21,6 +21,7 @@ from ui.menu_builder import (
 from controllers.load_controller import LoadController
 from image_data_handling.NIfTI_reader import NIfTIReader
 from image_data_handling.data_manager import VolumeDataManager
+from ui.toast_api import toast, init_toast
 
 
 class MainWindow(QMainWindow):
@@ -62,6 +63,8 @@ class MainWindow(QMainWindow):
         self.metadata_dock.setWidget(self.metadata_viewer)
         self.metadata_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.metadata_dock)
+
+        init_toast(self)
 
     def resizeEvent(self, event):
         """Override resize event to reposition floating window."""
@@ -133,7 +136,7 @@ class MainWindow(QMainWindow):
         """Loads an AI Model - at least later ;)"""
         model_path, _ = QFileDialog.getOpenFileName(self, "Load AI Model", "", "Model Files (*.h5 *pth *pkl *onnx *pb *tflite *keras *joblib *pmml);;All Files (*)")
         if model_path:
-            print(f"loading following model: {model_path}")
+            toast(f"Loading following model: {model_path}")
 
     def close_application(self):
         """Closes the application"""
@@ -141,7 +144,9 @@ class MainWindow(QMainWindow):
 
     def show_save_dialog(self):
         if self.data_manager.volume_data is None:
-            print("No data to save")
+            #self.statusBar().showMessage("No data to save", 3000)  # shows for 3 seconds
+            #QMessageBox.information(self, "No data top save", "The image has been successfully loaded.")
+            toast("No data to save...")
             return
 
         save_dialog = SaveDialog(self) # Pass self as parent
@@ -161,7 +166,7 @@ class MainWindow(QMainWindow):
 
     def execute_save_action(self, format_type, file_path):
         """Executes the appropriate save function based on dialog selection."""
-        print(f"Save requested: Format={format_type}, Path={file_path}")
+        #print(f"Save requested: Format={format_type}, Path={file_path}")
         if format_type == "image":
             self.save_controller.save_image(file_path)
         elif format_type == "mp4":
@@ -171,6 +176,6 @@ class MainWindow(QMainWindow):
         elif format_type == "nifti":
             self.save_controller.save_nifti(file_path)
         else:
-            print(f"Unknown Format. Attempted to save in an unknown format: {format_type}")
+            toast(f"Unknown Format. Attempted to save in an unknown format: {format_type}")
 
 
