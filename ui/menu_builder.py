@@ -50,7 +50,7 @@ def _build_ai_menu(window, menu):
 
     sam_action = QAction("Enable SAM", window)
     sam_action.setCheckable(True)
-    sam_action.toggled.connect(window.viewer_widget.enable_sam)
+    sam_action.toggled.connect(window.viewer_widget.sam_handler.enable_sam)
     ai_menu.addAction(sam_action)
 
 def _build_view_menu(window, menu):

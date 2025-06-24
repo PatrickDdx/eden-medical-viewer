@@ -16,19 +16,18 @@ from ui.graphics_view import CustomGraphicsView, InteractionMode
 from image_data_handling.data_manager import VolumeDataManager
 from ui.loading_widget import LoadingWidget
 from ui.toast_api import toast
+from AI.SAM.sam_handler import SAMHandler
 
 class ViewerWidget(QWidget):
     def __init__(self, data_manager: VolumeDataManager = None, windowing_manager = None):
         super().__init__()
 
-        self.sam = SAMSegmenter()
-        self.show_mask_overlay = False
+        #self.sam = SAMSegmenter()
+        #self.show_mask_overlay = False
 
         self.data_manager = data_manager
         self.windowing_manager = windowing_manager
-        self.sam_runner = None
-
-        self.sam_controller = SAMController(self.sam, self.data_manager)
+        #self.sam_controller = SAMController(self.sam, self.data_manager)
 
         self.graphics_view = CustomGraphicsView(self)
         self.scene = QGraphicsScene()
@@ -88,9 +87,6 @@ class ViewerWidget(QWidget):
             Qt.Key.Key_4: "Bone"
         }
 
-        self.graphics_view.clicked_in_sam_mode.connect(self.on_sam_click)
-        self.overlay = None
-
         #Measure
         self.line_item = None
         self.text_item = None
@@ -100,6 +96,8 @@ class ViewerWidget(QWidget):
         self.measurement_items = []
 
         self.show_mask_overlay_mode = False
+
+        self.sam_handler = SAMHandler(self)
 
     def resizeEvent(self, event):
         # When the viewer resizes, ensure the image fits properly
@@ -170,10 +168,10 @@ class ViewerWidget(QWidget):
 
         processed = self.windowing_manager.apply(modality_slice_data, self.window_width, self.window_center)
 
-        if self.show_mask_overlay and self.data_manager.mask_data is not None:
+        if self.sam_handler.show_mask_overlay and self.data_manager.mask_data is not None:
             mask = self.data_manager.mask_data[self.current_slice_index]
             if np.any(mask):  # mask exists for this slice
-                self.display_mask_overlay()
+                self.sam_handler.display_mask_overlay()
             else:
                 self.display_image(processed)
         else:
@@ -272,9 +270,12 @@ class ViewerWidget(QWidget):
 
         if key == Qt.Key.Key_O:
             # Toggle mask mode
-            self.show_mask_overlay = not self.show_mask_overlay
+            #self.sam_handler.toggle_mask_overlay()
+            #toast(f"Mask overlay {'enabled' if self.show_mask_overlay else 'disabled'}")
+            # Toggle mask mode
+            self.sam_handler.show_mask_overlay = not self.sam_handler.show_mask_overlay
             self.update_image(self.current_slice_index)  # Refresh current view
-            toast(f"Mask overlay {'enabled' if self.show_mask_overlay else 'disabled'}")
+            toast(f"Mask overlay {'enabled' if self.sam_handler.show_mask_overlay else 'disabled'}")
 
         if key == Qt.Key.Key_M:
             self.enable_measure(not self.graphics_view._mode == InteractionMode.MEASURE)
@@ -309,63 +310,6 @@ class ViewerWidget(QWidget):
 
 ####################### SAM
 
-
-    def on_sam_click(self, scene_pos:QPointF):
-        #print(f"Handling SAM click at: {scene_pos.x()}, {scene_pos.y()}")
-        x = int(scene_pos.x())
-        y = int(scene_pos.y())
-
-        #self.graphics_view.setCursor(Qt.CursorShape.BusyCursor)
-        QApplication.processEvents()
-
-        # Get the current image
-        image_np = self.dicom_slices[self.current_slice_index]
-
-        self.sam_runner = SAMWorkerRunner(
-            sam_controller=self.sam_controller,
-            image_np=image_np, click_point=(x,y),
-            slice_index=self.current_slice_index,
-            on_sam_finished=self.on_sam_finished,
-            on_sam_error=self.on_sam_error)
-        self.sam_runner.start()
-
-    def enable_sam(self, enabled:bool):
-        if enabled:
-            toast("SAM enabled. Choose a something to segment.")
-            #print("sam enabled!")
-            self.graphics_view.set_interaction_mode(InteractionMode.SAM)
-
-    def toggle_mask_overlay(self):
-
-        if self.data_manager.mask_data is None or np.max(self.data_manager.mask_data[self.current_slice_index]) == 0:
-            toast("No mask for current slice")
-            self.update_image(self.current_slice_index)
-            return
-
-        self.show_mask_overlay = not self.show_mask_overlay
-        if self.show_mask_overlay:
-            self.display_mask_overlay()
-        else:
-            #print("not showing overlay/ showing normal image")
-            self.update_image(self.current_slice_index)
-
-    def display_mask_overlay(self):
-        # print("showing overlay")
-        raw_image = self.data_manager.volume_data[self.current_slice_index]
-        windowed_image = self.windowing_manager.apply(raw_image, self.window_width, self.window_center)
-
-        mask = self.data_manager.mask_data[self.current_slice_index]
-        image_rgb = ensure_rgb(windowed_image)  # Or however you convert grayscale to RGB
-        overlay = overlay_mask(image_rgb, mask)
-        self.display_image(overlay)
-
-    def on_sam_finished(self):
-            self.toggle_mask_overlay()
-            #self.graphics_view.setCursor(Qt.CursorShape.ArrowCursor)
-
-    def on_sam_error(self, error_message: str):
-        toast(f"Error during SAM processing: {error_message}")
-        #self.graphics_view.setCursor(Qt.CursorShape.ArrowCursor)
 
 ####################### Measure
 
