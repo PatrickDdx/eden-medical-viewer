@@ -17,6 +17,7 @@ from image_data_handling.data_manager import VolumeDataManager
 from ui.loading_widget import LoadingWidget
 from ui.toast_api import toast
 from AI.SAM.sam_handler import SAMHandler
+from ui.measurement_handler import MeasurementHandler
 
 class ViewerWidget(QWidget):
     def __init__(self, data_manager: VolumeDataManager = None, windowing_manager = None):
@@ -91,9 +92,11 @@ class ViewerWidget(QWidget):
         self.line_item = None
         self.text_item = None
 
-        self.graphics_view.send_measurement_points.connect(self.on_measure)
+        #self.graphics_view.send_measurement_points.connect(self.on_measure)
 
-        self.measurement_items = []
+        #self.measurement_items = []
+
+        self.measure_handler = MeasurementHandler(self)
 
         self.show_mask_overlay_mode = False
 
@@ -113,7 +116,7 @@ class ViewerWidget(QWidget):
             self.data_manager.slice_measurements = {} #clerar measurements form series before
         self.current_slice_index = 0
         #self.update_image(self.current_slice_index) #-> the image gets updated (and therefore windowed) when loading initially from the main Window
-        self.delete_all_measurements()
+        self.measure_handler.delete_all_measurements()
 
     def display_image(self, image_data):
         """
@@ -177,7 +180,7 @@ class ViewerWidget(QWidget):
         else:
             self.display_image(processed)
 
-        self.update_measurements_on_scene()
+        self.measure_handler.update_measurements_on_scene()
 
         # IMPORTANT: When the image is updated by non-slider means (e.g., cine loop, key press, wheel event),
         # we update the slider's value directly. The slider's valueChanged signal will then trigger
@@ -278,7 +281,7 @@ class ViewerWidget(QWidget):
             toast(f"Mask overlay {'enabled' if self.sam_handler.show_mask_overlay else 'disabled'}")
 
         if key == Qt.Key.Key_M:
-            self.enable_measure(not self.graphics_view._mode == InteractionMode.MEASURE)
+            self.measure_handler.enable_measure(not self.graphics_view._mode == InteractionMode.MEASURE)
 
         super().keyPressEvent(event)
 
@@ -313,55 +316,6 @@ class ViewerWidget(QWidget):
 
 ####################### Measure
 
-    def enable_measure(self, checked:bool = False):
-        if not checked:
-            self.graphics_view.set_interaction_mode(InteractionMode.NONE)
-        else:
-            self.graphics_view.set_interaction_mode(InteractionMode.MEASURE)
 
-    def on_measure(self, p1:QPointF, p2:QPointF):
-        #print(f"point 1: {p1}, point 2: {p2}")
-        self.data_manager.add_measurement(self.current_slice_index, p1, p2)
-        self.update_measurements_on_scene()
-
-    def update_measurements_on_scene(self):
-        # Remove old items
-        for item in getattr(self, 'measurement_items', []):
-            self.scene.removeItem(item)
-        self.measurement_items = []
-
-        measurements = self.data_manager.get_measurements(self.current_slice_index)
-        if not measurements:
-            return
-
-        pixel_spacing = self.data_manager.pixel_spacing or [1.0, 1.0]
-        font = QFont("Helvetica Neue")
-        font.setPointSize(10)
-        font.setWeight(QFont.Weight.Medium)
-        pen = QPen(QColor(0, 122, 255, 200))
-        pen.setWidthF(1.5)
-        pen.setCosmetic(True)
-
-        for p1, p2 in measurements:
-            dy = (p2.y() - p1.y()) * pixel_spacing[0]
-            dx = (p2.x() - p1.x()) * pixel_spacing[1]
-            distance = np.sqrt(dx ** 2 + dy ** 2)
-
-            line = self.scene.addLine(p1.x(), p1.y(), p2.x(), p2.y(), pen)
-            mid_x = (p1.x() + p2.x()) / 2
-            mid_y = (p1.y() + p2.y()) / 2
-            text = self.scene.addText(f"{distance:.2f} mm", font)
-            text.setDefaultTextColor(QColor(255, 255, 255))
-            text.setPos(mid_x + 5, mid_y + 5)
-
-            self.measurement_items.extend([line, text])
-
-    def delete_all_measurements(self):
-        # Clear existing measurement visuals
-        for item in getattr(self, 'measurement_items', []):
-            self.scene.removeItem(item)
-        self.measurement_items = []
-
-        self.data_manager.slice_measurements = {}
 
 
