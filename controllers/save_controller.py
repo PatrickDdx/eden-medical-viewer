@@ -34,7 +34,8 @@ class SaveController:
     def save_mp4(self, file_path):
         if file_path:
             try:
-                self.data_manager.save_as_mp4(file_path, self.viewer_widget.cine_interval, self.viewer_widget.window_width, self.viewer_widget.window_center)
+                interval_ms = self.viewer_widget.cine_controller.get_speed()
+                self.data_manager.save_as_mp4(file_path, interval_ms, self.viewer_widget.window_width, self.viewer_widget.window_center)
                 toast("MP4 export completed successfully.")
             except Exception as e:
                 toast(f"MP4 export failed: {e}")

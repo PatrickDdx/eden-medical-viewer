@@ -79,7 +79,7 @@ class ViewerWidget(QWidget):
         self.center_slider = None
         self.width_slider = None
 
-        self.cine_controller = CineController(self.next_frame)
+        self.cine_controller = CineController(self._next_frame)
 
         self.window_keys = {
             Qt.Key.Key_1: "Brain",
@@ -269,7 +269,7 @@ class ViewerWidget(QWidget):
             self.apply_window_preset(name)
 
         if key == Qt.Key.Key_P:
-            self.toggle_cine_loop()
+            self.cine_controller.toggle()
 
         if key == Qt.Key.Key_O:
             # Toggle mask mode
@@ -296,25 +296,14 @@ class ViewerWidget(QWidget):
 
 
 ##################################################### Cine loop functions
-    def toggle_cine_loop(self):
-        self.cine_controller.toggle()
 
-    def next_frame(self):
+
+    def _next_frame(self):
         if self.dicom_slices is None:
             return
         self.current_slice_index = (self.current_slice_index + 1) % self.dicom_slices.shape[0]
         self.update_image(self.current_slice_index)
 
-    def increase_cine_speed(self):
-        self.cine_controller.increase_speed()
-
-    def decrease_cine_speed(self):
-        self.cine_controller.decrease_speed()
-
-####################### SAM
-
-
-####################### Measure
 
 
 

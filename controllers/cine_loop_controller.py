@@ -35,7 +35,9 @@ class CineController:
         self.interval = interval_ms
         self.timer.setInterval(self.interval)
         if self.is_playing:
+            self.timer.stop()
             self.timer.start()
+
 
     def increase_speed(self, step=30, min_interval=10):
         self.set_speed(max(min_interval, self.interval - step))

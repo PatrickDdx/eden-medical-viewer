@@ -57,15 +57,15 @@ def _build_view_menu(window, menu):
     view_menu = menu.addMenu("View")
 
     play_cine = QAction("Play/Stop cine", window)
-    play_cine.triggered.connect(window.viewer_widget.toggle_cine_loop)
+    play_cine.triggered.connect(window.viewer_widget.cine_controller.toggle)
     view_menu.addAction(play_cine)
 
     faster_cine = QAction("Faster cine", window)
-    faster_cine.triggered.connect(window.viewer_widget.increase_cine_speed)
+    faster_cine.triggered.connect(lambda _: window.viewer_widget.cine_controller.increase_speed())
     view_menu.addAction(faster_cine)
 
     slower_cine = QAction("Slower cine", window)
-    slower_cine.triggered.connect(window.viewer_widget.decrease_cine_speed)
+    slower_cine.triggered.connect(lambda _: window.viewer_widget.cine_controller.decrease_speed())
     view_menu.addAction(slower_cine)
 
 def _build_tools_menu(window, menu):

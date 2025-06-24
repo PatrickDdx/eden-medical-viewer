@@ -16,7 +16,6 @@ from ui.menu_builder import (
     _build_view_menu,
     _build_tools_menu,
     _build_help_menu
-
 )
 from controllers.load_controller import LoadController
 from image_data_handling.NIfTI_reader import NIfTIReader
@@ -115,6 +114,7 @@ class MainWindow(QMainWindow):
         _build_view_menu(self, menu)
         _build_tools_menu(self, menu)
         _build_help_menu(self, menu)
+
 
     def toggle_floating_controls(self, checked):
         """Toggles the visibility of  the floating control window on/off"""
