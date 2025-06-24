@@ -45,6 +45,7 @@ class SaveDialog(QDialog):
         self.format_combo.addItem("MP4 Video", "mp4")
         self.format_combo.addItem("DICOM Series", "dicom")
         self.format_combo.addItem("NIfTI File", "nifti")
+        self.format_combo.addItem("Image with Overlay", "overlay")
         self.format_combo.currentIndexChanged.connect(self.update_file_path_placeholder)
         form_layout.addRow(self.format_label, self.format_combo)
 
@@ -127,6 +128,12 @@ class SaveDialog(QDialog):
             file_path, _ = QFileDialog.getSaveFileName(
                 self, "Save as NIfTI", "",
                 "NIfTI (*.nii);;NIfTI GZ (*.nii.gz);;All Files (*)"
+            )
+        elif selected_format_data == "overlay":
+            # For PNG/JPG, get a file name
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Save Image As", "",
+                "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (*.bmp);;All Files (*)"
             )
 
         if file_path:

@@ -11,6 +11,12 @@ class SaveController:
         else:
             toast("Save cancelled")
 
+    def save_overlay(self, file_path):
+        if file_path:
+            self.data_manager.save_current_scene_with_overlays(self.viewer_widget, file_path)
+        else:
+            toast("Save cancelled")
+
     def save_dicom(self, directory):
         if self.data_manager.volume_data is None:
             toast("No Data")

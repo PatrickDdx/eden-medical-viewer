@@ -53,8 +53,8 @@ class Toast(QWidget):
 
         if self._parent_ref:
             parent_geom = self._parent_ref.geometry()
-            x = parent_geom.x() + (parent_geom.width() - self.width()) // 2
-            y = parent_geom.y() + (parent_geom.height() - self.height()) // 2
+            x = int(parent_geom.x() + (parent_geom.width() - self.width()) // 2)
+            y = int(parent_geom.y() + (parent_geom.height() *0.9 - self.height()))
             self.move(x, y)
 
         self.setWindowOpacity(0.0)

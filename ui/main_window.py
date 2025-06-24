@@ -89,7 +89,7 @@ class MainWindow(QMainWindow):
 
             # Target X: main window's right edge - floating window's width - small margin
             # Target Y: main window's top edge + small margin
-            target_x = main_window_rect.right() - floating_window_width - int(main_window_rect.width()*0.15)
+            target_x = main_window_rect.right() - floating_window_width - int(main_window_rect.width()*0.05)
             target_y = main_window_rect.bottom() - floating_window_height - int(main_window_rect.height()*0.1)  # Below menu bar
             self.floating_controls_window.move(target_x, target_y)
 
@@ -175,6 +175,8 @@ class MainWindow(QMainWindow):
             self.save_controller.save_dicom(file_path)  # For DICOM, file_path is actually a directory
         elif format_type == "nifti":
             self.save_controller.save_nifti(file_path)
+        elif format_type == "overlay":
+            self.save_controller.save_overlay(file_path)
         else:
             toast(f"Unknown Format. Attempted to save in an unknown format: {format_type}")
 

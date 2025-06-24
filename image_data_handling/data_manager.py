@@ -107,6 +107,20 @@ class VolumeDataManager:
         except Exception as e:
             toast(f"Error saving current slice: {e}")
 
+    def save_current_scene_with_overlays(self, viewer, file_path: str):
+        try:
+            if viewer is None:
+                toast("ViewerWidget is None. Cannot save scene.")
+                return
+
+            image = viewer.render_scene_to_image()
+
+            if not image.save(file_path):
+                toast(f"Failed to save scene to {file_path}")
+            else:
+                toast(f"Scene with overlays saved to {file_path}")
+        except Exception as e:
+            toast(f"Error saving scene with overlays: {e}")
 
     def save_as_dicom(self, directory_path):
         try:

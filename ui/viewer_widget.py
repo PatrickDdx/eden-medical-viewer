@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QGraphicsScene, QGraphicsPixmapItem
 )
 from PyQt6.QtCore import Qt, QPointF, QThread
-from PyQt6.QtGui import QPixmap, QImage, QPen, QColor, QFont
+from PyQt6.QtGui import QPixmap, QImage, QPen, QColor, QFont, QPainter
 
 import numpy as np
 import os
@@ -303,6 +303,28 @@ class ViewerWidget(QWidget):
             return
         self.current_slice_index = (self.current_slice_index + 1) % self.dicom_slices.shape[0]
         self.update_image(self.current_slice_index)
+
+
+############ Saving the overlay
+    def render_scene_to_image(self) -> QImage:
+        rect = self.scene.sceneRect()
+        #print(f"Scene rect: width={rect.width()}, height={rect.height()}")
+
+        width = int(rect.width())
+        height = int(rect.height())
+        if width == 0 or height == 0:
+            raise ValueError("Scene rect is empty, nothing to render.")
+
+        image = QImage(width, height, QImage.Format.Format_ARGB32)
+        image.fill(Qt.GlobalColor.white)
+
+        painter = QPainter(image)
+        self.scene.render(painter)
+        painter.end()
+
+        return image
+
+
 
 
 
