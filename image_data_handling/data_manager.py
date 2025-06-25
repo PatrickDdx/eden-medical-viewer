@@ -5,6 +5,7 @@ from image_data_handling.exporters.nifti_exporter import export_nifti
 from image_data_handling.exporters.video_exporter import export_as_mp4
 from image_data_handling.exporters.image_exporter import export_slice_image
 from ui.toast_api import toast
+from image_data_handling.exporters.export_helpers import create_synthetic_dicom_headers, build_affine_from_dicom
 
 
 class VolumeDataManager:
@@ -124,14 +125,25 @@ class VolumeDataManager:
 
     def save_as_dicom(self, directory_path):
         try:
-            export_dicom_series(self.volume_data, self.original_dicom_headers, directory_path)
+
+            headers = self.original_dicom_headers
+
+            if headers is None and self.current_data_type == "nifti":
+                headers = create_synthetic_dicom_headers(volume_data=self)
+                toast("No original header. Synthetic header created.")
+
+            export_dicom_series(self.volume_data, headers, directory_path)
             toast(f"DICOM series saved to {directory_path}")
         except Exception as e:
             toast(f"Error saving DICOM series: {e}")
 
     def save_as_nifti(self, file_path):
         try:
-            export_nifti(self.volume_data, self.nifti_affine_matrix, file_path)
+            if self.current_data_type == "dicom":
+                affine = build_affine_from_dicom(self)
+            else: affine = self.nifti_affine_matrix
+
+            export_nifti(self.volume_data, affine, file_path)
             toast(f"NIfTI saved to {file_path}")
         except Exception as e:
             toast(f"Error saving NIfTI: {e}")

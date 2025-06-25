@@ -2,7 +2,7 @@ import pydicom
 import copy
 from pathlib import Path
 from pydicom.uid import ExplicitVRLittleEndian, generate_uid
-
+import numpy as np
 
 def export_dicom_series(volume_data, headers, output_dir_path):
 
@@ -25,7 +25,7 @@ def export_dicom_series(volume_data, headers, output_dir_path):
         header.is_little_endian = True
 
         # Ensure the pixel data has correct shape/type
-        header.PixelData = slice_data.astype(header.pixel_array.dtype).tobytes()
+        header.PixelData = slice_data.astype(np.int16).tobytes()
         header.Rows, header.Columns = slice_data.shape
         header.SeriesInstanceUID = series_uid
         # Update InstanceNumber to ensure ordering in viewers
