@@ -1,5 +1,5 @@
 
-from PyQt6.QtCore import QPointF
+from PyQt6.QtCore import QPointF, Qt
 import numpy as np
 from PyQt6.QtWidgets import QApplication
 
@@ -21,12 +21,8 @@ class SAMHandler:
         self.viewer.graphics_view.clicked_in_sam_mode.connect(self.on_sam_click)
 
     def on_sam_click(self, scene_pos:QPointF):
-        # print(f"Handling SAM click at: {scene_pos.x()}, {scene_pos.y()}")
         x = int(scene_pos.x())
         y = int(scene_pos.y())
-
-        # self.graphics_view.setCursor(Qt.CursorShape.BusyCursor)
-        QApplication.processEvents()
 
         # Get the current image
         image_np = self.viewer.dicom_slices[self.viewer.current_slice_index]
@@ -72,10 +68,9 @@ class SAMHandler:
 
     def on_sam_finished(self):
         self.toggle_mask_overlay()
-        #self.graphics_view.setCursor(Qt.CursorShape.ArrowCursor)
 
     def on_sam_error(self, error_message: str):
         toast(f"Error during SAM processing: {error_message}")
-        #self.graphics_view.setCursor(Qt.CursorShape.ArrowCursor)
+
 
 

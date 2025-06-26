@@ -1,6 +1,5 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QVBoxLayout, QWidget, QDockWidget, QMessageBox
-from PyQt6.QtGui import QAction
 
 from controllers.save_controller import SaveController
 from image_data_handling.windowing_manager import WindowingManager
@@ -14,8 +13,7 @@ from ui.menu_builder import (
     _build_windowing_menu,
     _build_ai_menu,
     _build_view_menu,
-    _build_tools_menu,
-    _build_help_menu
+    _build_tools_menu
 )
 from controllers.load_controller import LoadController
 from image_data_handling.NIfTI_reader import NIfTIReader
@@ -39,8 +37,7 @@ class MainWindow(QMainWindow):
         self.viewer_widget = ViewerWidget(data_manager = self.data_manager, windowing_manager=self.windowing_manager)
 
         self.floating_controls_window = FloatingControlsWindow(self.viewer_widget, self.windowing_manager)
-        # Ensure the viewer widget in the main window gets the sliders from the floating controls
-        # We need to access the controls instance inside the floating window
+
         self.viewer_widget.set_slider(self.floating_controls_window.controls.slider,
                                       center_slider=self.floating_controls_window.controls.center_slider,
                                       width_slider=self.floating_controls_window.controls.width_slider
@@ -87,8 +84,6 @@ class MainWindow(QMainWindow):
             floating_window_width = self.floating_controls_window.width()
             floating_window_height = self.floating_controls_window.height()
 
-            # Target X: main window's right edge - floating window's width - small margin
-            # Target Y: main window's top edge + small margin
             target_x = main_window_rect.right() - floating_window_width - int(main_window_rect.width()*0.05)
             target_y = main_window_rect.bottom() - floating_window_height - int(main_window_rect.height()*0.1)  # Below menu bar
             self.floating_controls_window.move(target_x, target_y)
@@ -113,8 +108,6 @@ class MainWindow(QMainWindow):
         _build_ai_menu(self, menu)
         _build_view_menu(self, menu)
         _build_tools_menu(self, menu)
-        _build_help_menu(self, menu)
-
 
     def toggle_floating_controls(self, checked):
         """Toggles the visibility of  the floating control window on/off"""
@@ -144,12 +137,10 @@ class MainWindow(QMainWindow):
 
     def show_save_dialog(self):
         if self.data_manager.volume_data is None:
-            #self.statusBar().showMessage("No data to save", 3000)  # shows for 3 seconds
-            #QMessageBox.information(self, "No data top save", "The image has been successfully loaded.")
             toast("No data to save...")
             return
 
-        save_dialog = SaveDialog(self) # Pass self as parent
+        save_dialog = SaveDialog(self)
 
         # Calculate the center position
         main_window_center = self.geometry().center()
@@ -166,7 +157,6 @@ class MainWindow(QMainWindow):
 
     def execute_save_action(self, format_type, file_path):
         """Executes the appropriate save function based on dialog selection."""
-        #print(f"Save requested: Format={format_type}, Path={file_path}")
         if format_type == "image":
             self.save_controller.save_image(file_path)
         elif format_type == "mp4":

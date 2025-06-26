@@ -34,19 +34,16 @@ def export_dicom_series(volume_data, headers, output_dir_path):
         # Update SOPInstanceUID to make sure each slice is unique
         header.SOPInstanceUID = pydicom.uid.generate_uid()
 
-        # --- IMPORTANT: Ensure Windowing Tags are Present ---
         # Check if original_header has Window Center/Width and copy them
         if 'WindowCenter' in original_header:
             header.WindowCenter = original_header.WindowCenter
         if 'WindowWidth' in original_header:
             header.WindowWidth = original_header.WindowWidth
 
-        # Also consider Rescale Slope/Intercept if present and needed for correct interpretation
         if 'RescaleIntercept' in original_header:
             header.RescaleIntercept = original_header.RescaleIntercept
         if 'RescaleSlope' in original_header:
             header.RescaleSlope = original_header.RescaleSlope
-        # --- End Windowing Tags ---
 
         output_file = output_dir / f"slice_{i:04d}.dcm"
         header.save_as(str(output_file), write_like_original=True)

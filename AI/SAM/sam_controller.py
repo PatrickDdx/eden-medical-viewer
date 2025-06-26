@@ -2,8 +2,6 @@ import numpy as np
 
 from AI.SAM.sam_segmenter import SAMSegmenter
 from image_data_handling.data_manager import VolumeDataManager
-from image_data_handling.logic.mask_utils import overlay_mask, ensure_rgb
-
 
 class SAMController:
     def __init__(self, sam_model:SAMSegmenter, data_manager: VolumeDataManager):

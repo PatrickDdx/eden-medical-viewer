@@ -27,7 +27,7 @@ class LoadController:
             image_rgb = cv2.cvtColor(image_grayscale, cv2.COLOR_BGR2GRAY) #shape (x,y)
 
             image_volume = np.expand_dims(image_rgb, axis=0)
-            #print(image_volume.shape)
+
             self.viewer_widget.load_volume_series(image_volume)
 
             # Set the control sliders
@@ -40,8 +40,6 @@ class LoadController:
 
             default_center = (max_val + min_val) // 2
             default_width = max_val - min_val
-
-            #print(f"default: -width: {default_width}, -level: {default_center}")
 
             self.viewer_widget.update_windowing(default_center, default_width)
 

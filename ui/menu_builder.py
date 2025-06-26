@@ -44,9 +44,9 @@ def _build_windowing_menu(window, menu):
 def _build_ai_menu(window, menu):
     ai_menu = menu.addMenu("AI")
 
-    load_action = QAction("Load Model", window)
-    load_action.triggered.connect(window.load_ai_model)
-    ai_menu.addAction(load_action)
+    #load_action = QAction("Load Model", window)
+    #load_action.triggered.connect(window.load_ai_model)
+    #ai_menu.addAction(load_action)
 
     sam_action = QAction("Enable SAM", window)
     sam_action.setCheckable(True)
@@ -83,6 +83,3 @@ def _build_tools_menu(window, menu):
     delete_measurements_action = QAction("Delete Measurements", window)
     delete_measurements_action.triggered.connect(window.viewer_widget.measure_handler.delete_all_measurements)
     tools_menu.addAction(delete_measurements_action)
-
-def _build_help_menu(window, menu):
-    help_menu = menu.addMenu("Help")

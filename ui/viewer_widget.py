@@ -1,34 +1,25 @@
 from PyQt6.QtWidgets import (
-    QWidget, QApplication, QStackedLayout,
+    QWidget, QStackedLayout,
     QGraphicsScene, QGraphicsPixmapItem
 )
-from PyQt6.QtCore import Qt, QPointF, QThread
-from PyQt6.QtGui import QPixmap, QImage, QPen, QColor, QFont, QPainter
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap, QImage, QPainter
 
 import numpy as np
 import os
-from AI.SAM.sam_worker import SAMWorker, SAMWorkerRunner
-from image_data_handling.logic.mask_utils import overlay_mask, ensure_rgb
-from AI.SAM.sam_controller import SAMController
-from AI.SAM.sam_segmenter import SAMSegmenter
 from controllers.cine_loop_controller import CineController
 from ui.graphics_view import CustomGraphicsView, InteractionMode
 from image_data_handling.data_manager import VolumeDataManager
 from ui.loading_widget import LoadingWidget
 from ui.toast_api import toast
 from AI.SAM.sam_handler import SAMHandler
-from ui.measurement_handler import MeasurementHandler
+from image_data_handling.logic.measurement_handler import MeasurementHandler
 
 class ViewerWidget(QWidget):
     def __init__(self, data_manager: VolumeDataManager = None, windowing_manager = None):
         super().__init__()
-
-        #self.sam = SAMSegmenter()
-        #self.show_mask_overlay = False
-
         self.data_manager = data_manager
         self.windowing_manager = windowing_manager
-        #self.sam_controller = SAMController(self.sam, self.data_manager)
 
         self.graphics_view = CustomGraphicsView(self)
         self.scene = QGraphicsScene()
@@ -42,7 +33,6 @@ class ViewerWidget(QWidget):
         self.mask_overlay_item.setZValue(1) # Draw on top of base image
 
         self.graphics_view.fitInView(self.pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
-        #disable scrollbars so the image doesn't shift on wheel events
 
         # set focus so key events get detected
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -91,10 +81,6 @@ class ViewerWidget(QWidget):
         #Measure
         self.line_item = None
         self.text_item = None
-
-        #self.graphics_view.send_measurement_points.connect(self.on_measure)
-
-        #self.measurement_items = []
 
         self.measure_handler = MeasurementHandler(self)
 
@@ -182,9 +168,6 @@ class ViewerWidget(QWidget):
 
         self.measure_handler.update_measurements_on_scene()
 
-        # IMPORTANT: When the image is updated by non-slider means (e.g., cine loop, key press, wheel event),
-        # we update the slider's value directly. The slider's valueChanged signal will then trigger
-        # the DicomControls label update.
         if self.slice_slider and self.slice_slider.value() != slice_index:
             self.slice_slider.setValue(slice_index)
 
@@ -196,8 +179,6 @@ class ViewerWidget(QWidget):
         self.update_image(self.current_slice_index)
 
         # Sync sliders
-        # Update sliders if values were set externally (e.g., by default windowing, preset)
-        # NO blockSignals(True) here. We want the slider's signal to propagate to DicomControls.
         if self.center_slider and self.center_slider.value() != center:
             self.center_slider.setValue(center)
         if self.width_slider and self.width_slider.value() != width:
@@ -262,9 +243,8 @@ class ViewerWidget(QWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
-        #print(f"key pressed: {key}")
         name = self.window_keys.get(key)
-        #print(f"name {name}")
+
         if name:
             self.apply_window_preset(name)
 
@@ -272,9 +252,6 @@ class ViewerWidget(QWidget):
             self.cine_controller.toggle()
 
         if key == Qt.Key.Key_O:
-            # Toggle mask mode
-            #self.sam_handler.toggle_mask_overlay()
-            #toast(f"Mask overlay {'enabled' if self.show_mask_overlay else 'disabled'}")
             # Toggle mask mode
             self.sam_handler.show_mask_overlay = not self.sam_handler.show_mask_overlay
             self.update_image(self.current_slice_index)  # Refresh current view
@@ -308,7 +285,6 @@ class ViewerWidget(QWidget):
 ############ Saving the overlay
     def render_scene_to_image(self) -> QImage:
         rect = self.scene.sceneRect()
-        #print(f"Scene rect: width={rect.width()}, height={rect.height()}")
 
         width = int(rect.width())
         height = int(rect.height())

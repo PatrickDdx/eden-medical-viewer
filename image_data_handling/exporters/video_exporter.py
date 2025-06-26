@@ -10,7 +10,7 @@ def export_as_mp4(volume_data, output_path, fps, data_type, window_fn):
 
     for i in range(num_slices):
         if data_type == "dicom":
-            img = window_fn(i) # Applies rescale + window
+            img = window_fn(i) # Apply rescale + window
         else:
             img = window_fn(volume_data[i])
 

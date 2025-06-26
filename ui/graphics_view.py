@@ -1,8 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication, QStackedLayout, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem, QLabel
-from PyQt6.QtCore import Qt, QTimer, QPointF, QPoint, pyqtSignal  # Ensure QPoint is imported
-from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter, QTransform
-import numpy as np
-import cv2
+from PyQt6.QtWidgets import QWidget, QGraphicsView
+from PyQt6.QtCore import Qt, QTimer, QPointF, QPoint, pyqtSignal
+from PyQt6.QtGui import QPainter
 from enum import Enum
 from ui.toast_api import toast
 
@@ -27,7 +25,7 @@ class CustomGraphicsView(QGraphicsView):
         # Disable scrollbars to prevent image shifting during zoom/pan
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setDragMode(QGraphicsView.DragMode.NoDrag)  # We will implement our own drag
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
 
         self.viewer_widget = parent if isinstance(parent, QWidget) else None # Reference to the parent ViewerWidget
 
@@ -57,13 +55,10 @@ class CustomGraphicsView(QGraphicsView):
         # Always check the current _mode first
         if self._mode == InteractionMode.SAM:
             if event.button() == Qt.MouseButton.LeftButton:
-                #print("left click while interaction mode == sam")
                 self._mode= InteractionMode.NONE
                 pos = event.position().toPoint()
-                #print(pos)
 
                 pos_in_scene = self.mapToScene(pos)
-                #print(f"Clicked at scene coordinates: x={pos_in_scene.x()}, y={pos_in_scene.y()}")
 
                 self.clicked_in_sam_mode.emit(pos_in_scene)  # Emit signal with coords
 
@@ -79,11 +74,8 @@ class CustomGraphicsView(QGraphicsView):
 
                 if not self.start_point:
                     self.start_point = pos
-                    #print(f"start: {self.start_point}")
                 else:
                     end_point = pos
-                    #self.draw_measurement(self.start_point, end_point)
-                    #print(f"end {end_point}")
                     self.send_measurement_points.emit(self.start_point, end_point)
                     self.start_point = None  # Reset for next measurement
 
@@ -202,8 +194,6 @@ class CustomGraphicsView(QGraphicsView):
         # The pixmap item's local coordinates are its pixel coordinates.
         image_coords = self.viewer_widget.pixmap_item.mapFromScene(scene_pos).toPoint()
 
-        # You might want to clamp the coordinates to ensure they are within the image bounds
-        # Get image dimensions from the pixmap item
         image_width = self.viewer_widget.pixmap_item.pixmap().width()
         image_height = self.viewer_widget.pixmap_item.pixmap().height()
 

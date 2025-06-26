@@ -21,9 +21,6 @@ class SaveController:
         if self.data_manager.volume_data is None:
             toast("No Data")
             return
-        #if self.data_manager.original_dicom_headers is None or not self.data_manager.original_dicom_headers:
-        #    toast("Missing Data: header")
-        #    return
 
         if directory:
             self.data_manager.save_as_dicom(directory)
