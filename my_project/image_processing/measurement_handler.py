@@ -4,7 +4,7 @@ from PyQt6.QtGui import QPen, QColor, QFont
 
 import numpy as np
 
-from src.ui.graphics_view import InteractionMode
+from my_project.ui.graphics_view import InteractionMode
 
 class MeasurementHandler:
     def __init__(self, viewer):

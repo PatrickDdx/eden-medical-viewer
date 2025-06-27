@@ -3,8 +3,8 @@ import warnings
 
 from PyQt6.QtWidgets import QApplication
 
-from src.ui.main_window import MainWindow
-from src.ui.stylesheets import dark_theme_global
+from my_project.ui.main_window import MainWindow
+from my_project.ui.stylesheets import dark_theme_global
 
 # Filter out the specific UserWarning from pydicom.valuerep related to invalid UI values
 # The message pattern is crucial here.

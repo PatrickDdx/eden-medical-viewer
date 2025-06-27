@@ -3,7 +3,7 @@ import numpy as np
 import os
 from concurrent.futures import ThreadPoolExecutor
 import time
-from src.ui.toast_api import toast
+from my_project.ui.toast_api import toast
 
 class DicomReader():
     def __init__(self):

@@ -2,7 +2,7 @@ from PyQt6.QtCore import QThread
 
 def start_nifti_loader(file_path, reader, on_finished, on_error):
 
-    from src.image_data_handling.NIfTI_loader import NiftiLoader
+    from my_project.data.NIfTI_loader import NiftiLoader
 
     nifti_thread = QThread()
     nifti_loader = NiftiLoader(file_path, reader)

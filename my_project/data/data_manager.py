@@ -1,11 +1,11 @@
 import numpy as np
 
-from src.image_data_handling.exporters.dicom_exporter import export_dicom_series
-from src.image_data_handling.exporters.nifti_exporter import export_nifti
-from src.image_data_handling.exporters.video_exporter import export_as_mp4
-from src.image_data_handling.exporters.image_exporter import export_slice_image
-from src.ui.toast_api import toast
-from src.image_data_handling.exporters.export_helpers import create_synthetic_dicom_headers, build_affine_from_dicom
+from my_project.image_data_handling.exporters.dicom_exporter import export_dicom_series
+from my_project.image_data_handling.exporters.nifti_exporter import export_nifti
+from my_project.image_data_handling.exporters.video_exporter import export_as_mp4
+from my_project.image_data_handling.exporters.image_exporter import export_slice_image
+from my_project.ui.toast_api import toast
+from my_project.image_data_handling.exporters.export_helpers import create_synthetic_dicom_headers, build_affine_from_dicom
 
 
 class VolumeDataManager:

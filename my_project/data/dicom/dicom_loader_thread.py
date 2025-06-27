@@ -2,7 +2,7 @@ from PyQt6.QtCore import QThread
 
 def start_dicom_loader(folder, reader, on_finished, on_error):
 
-    from src.image_data_handling.dicom_loader import DicomLoader
+    from my_project.data.dicom_loader import DicomLoader
 
     dicom_thread = QThread()
     dicom_loader = DicomLoader(folder, reader)
