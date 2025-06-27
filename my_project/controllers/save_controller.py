@@ -1,4 +1,4 @@
-from src.ui.toast_api import toast
+from my_project.ui.toast_api import toast
 
 class SaveController:
     def __init__(self, viewer_widget, data_manager):

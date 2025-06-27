@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QLabel,QFrame, QHBoxLayout, QPushButton
-from src.ui.controls import DicomControls
+from my_project.ui.controls import DicomControls
 
 class FloatingControlsWindow(QWidget):
     def __init__(self, viewer_widget, windowing_manager, parent=None):

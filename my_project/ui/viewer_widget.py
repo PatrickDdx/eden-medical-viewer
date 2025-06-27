@@ -2,20 +2,22 @@ from PyQt6.QtWidgets import (
     QWidget, QStackedLayout,
     QGraphicsScene, QGraphicsPixmapItem
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QImage, QPainter
 
 import numpy as np
 import os
-from src.controllers.cine_loop_controller import CineController
-from src.ui.graphics_view import CustomGraphicsView, InteractionMode
-from src.image_data_handling.data_manager import VolumeDataManager
-from src.ui.loading_widget import LoadingWidget
-from src.ui.toast_api import toast
-from src.AI.SAM.sam_handler import SAMHandler
-from src.image_data_handling.logic.measurement_handler import MeasurementHandler
+from my_project.controllers.cine_loop_controller import CineController
+from my_project.ui.graphics_view import CustomGraphicsView, InteractionMode
+from my_project.data.data_manager import VolumeDataManager
+from my_project.ui.loading_widget import LoadingWidget
+from my_project.ui.toast_api import toast
+#from my_project.AI.SAM.sam_handler import SAMHandler
+from my_project.image_processing.measurement_handler import MeasurementHandler
 
 class ViewerWidget(QWidget):
+    request_start_measure_mode = pyqtSignal()
+
     def __init__(self, data_manager: VolumeDataManager = None, windowing_manager = None):
         super().__init__()
         self.data_manager = data_manager
@@ -43,7 +45,6 @@ class ViewerWidget(QWidget):
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
         # Construct the full path to the GIF using os.path.join
         gif_path = os.path.join(base_dir, "assets", "animations", "Ripple@1x-1.0s-200px-200px.gif")
-        print(gif_path)
         self.loading_widget = LoadingWidget(gif_path)
 
         # --- Main Layout using QStackedLayout ---
@@ -86,7 +87,7 @@ class ViewerWidget(QWidget):
 
         self.show_mask_overlay_mode = False
 
-        self.sam_handler = SAMHandler(self)
+        #self.sam_handler = SAMHandler(self)
 
     def resizeEvent(self, event):
         # When the viewer resizes, ensure the image fits properly
@@ -157,6 +158,9 @@ class ViewerWidget(QWidget):
 
         processed = self.windowing_manager.apply(modality_slice_data, self.window_width, self.window_center)
 
+
+        """
+         --- Mask overlay block temporarily disabled ---
         if self.sam_handler.show_mask_overlay and self.data_manager.mask_data is not None:
             mask = self.data_manager.mask_data[self.current_slice_index]
             if np.any(mask):  # mask exists for this slice
@@ -165,6 +169,9 @@ class ViewerWidget(QWidget):
                 self.display_image(processed)
         else:
             self.display_image(processed)
+        """
+
+        self.display_image(processed)
 
         self.measure_handler.update_measurements_on_scene()
 
@@ -251,14 +258,17 @@ class ViewerWidget(QWidget):
         if key == Qt.Key.Key_P:
             self.cine_controller.toggle()
 
+        """
         if key == Qt.Key.Key_O:
             # Toggle mask mode
             self.sam_handler.show_mask_overlay = not self.sam_handler.show_mask_overlay
             self.update_image(self.current_slice_index)  # Refresh current view
             toast(f"Mask overlay {'enabled' if self.sam_handler.show_mask_overlay else 'disabled'}")
+        """
 
         if key == Qt.Key.Key_M:
             self.measure_handler.enable_measure(not self.graphics_view._mode == InteractionMode.MEASURE)
+            self.request_start_measure_mode.emit()
 
         super().keyPressEvent(event)
 

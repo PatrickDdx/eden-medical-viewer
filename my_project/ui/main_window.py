@@ -1,24 +1,23 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QVBoxLayout, QWidget, QDockWidget
 
-from src.controllers.save_controller import SaveController
-from src.image_data_handling.windowing_manager import WindowingManager
-from src.ui.floating_tool_bar import FloatingControlsWindow
-from src.ui.metadata_widget import DicomMetadataViewer
-from src.ui.save_menu import SaveDialog
-from src.ui.viewer_widget import ViewerWidget
-from src.image_data_handling.dicom_reader import DicomReader
-from src.ui.menu_builder import (
+from my_project.controllers.save_controller import SaveController
+from my_project.image_processing.windowing_manager import WindowingManager
+from my_project.ui.floating_tool_bar import FloatingControlsWindow
+from my_project.ui.metadata_widget import DicomMetadataViewer
+from my_project.ui.save_menu import SaveDialog
+from my_project.ui.viewer_widget import ViewerWidget
+from my_project.data.dicom.dicom_reader import DicomReader
+from my_project.ui.menu_builder import (
     _build_file_menu,
     _build_windowing_menu,
-    _build_ai_menu,
     _build_view_menu,
     _build_tools_menu
 )
-from src.controllers.load_controller import LoadController
-from src.image_data_handling.NIfTI_reader import NIfTIReader
-from src.image_data_handling.data_manager import VolumeDataManager
-from src.ui.toast_api import toast, init_toast
+from my_project.controllers.load_controller import LoadController
+from my_project.data.nifti.NIfTI_reader import NIfTIReader
+from my_project.data.data_manager import VolumeDataManager
+from my_project.ui.toast_api import toast, init_toast
 
 
 class MainWindow(QMainWindow):
@@ -105,9 +104,11 @@ class MainWindow(QMainWindow):
         #Build File Menu, #Windowing Menu, # AI Menu, View Menu, Help Menu
         _build_file_menu(self, menu)
         _build_windowing_menu(self, menu)
-        _build_ai_menu(self, menu)
         _build_view_menu(self, menu)
         _build_tools_menu(self, menu)
+
+        self.viewer_widget.graphics_view.request_exit_measure_mode.connect(lambda : self.measure_action.setChecked(False))
+        self.viewer_widget.request_start_measure_mode.connect(lambda  : self.measure_action.setChecked(True))
 
     def toggle_floating_controls(self, checked):
         """Toggles the visibility of  the floating control window on/off"""

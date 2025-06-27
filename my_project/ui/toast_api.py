@@ -1,5 +1,5 @@
 # toast_api.py
-from src.ui.toast import Toast
+from my_project.ui.toast import Toast
 
 
 def init_toast(parent):

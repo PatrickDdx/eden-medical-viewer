@@ -41,17 +41,19 @@ def _build_windowing_menu(window, menu):
     current_window.triggered.connect(window.viewer_widget.get_current_window)
     window_presets_menu.addAction(current_window)
 
+"""
 def _build_ai_menu(window, menu):
     ai_menu = menu.addMenu("AI")
 
-    #load_action = QAction("Load Model", window)
-    #load_action.triggered.connect(window.load_ai_model)
-    #ai_menu.addAction(load_action)
+    load_action = QAction("Load Model", window)
+    load_action.triggered.connect(window.load_ai_model)
+    ai_menu.addAction(load_action)
 
     sam_action = QAction("Enable SAM", window)
     sam_action.setCheckable(True)
     sam_action.toggled.connect(window.viewer_widget.sam_handler.enable_sam)
     ai_menu.addAction(sam_action)
+"""
 
 def _build_view_menu(window, menu):
     view_menu = menu.addMenu("View")
@@ -75,10 +77,10 @@ def _build_tools_menu(window, menu):
     toggle_floating_controls.triggered.connect(lambda x: window.toggle_floating_controls(True))
     tools_menu.addAction(toggle_floating_controls)
 
-    measure_action = QAction("Measure", window)
-    measure_action.setCheckable(True)
-    measure_action.toggled.connect(window.viewer_widget.measure_handler.enable_measure)
-    tools_menu.addAction(measure_action)
+    window.measure_action = QAction("Measure", window)
+    window.measure_action.setCheckable(True)
+    window.measure_action.toggled.connect(window.viewer_widget.measure_handler.enable_measure)
+    tools_menu.addAction(window.measure_action)
 
     delete_measurements_action = QAction("Delete Measurements", window)
     delete_measurements_action.triggered.connect(window.viewer_widget.measure_handler.delete_all_measurements)

@@ -3,9 +3,6 @@ import pydicom
 from pydicom.dataset import FileDataset, FileMetaDataset
 from datetime import datetime
 from pydicom.uid import generate_uid, ExplicitVRLittleEndian
-import os
-
-from sympy.physics.units import volume
 
 def create_synthetic_dicom_headers(volume_data):
     if volume_data.volume_data is None or volume_data.nifti_affine_matrix is None:

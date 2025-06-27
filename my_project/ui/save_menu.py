@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 
 import os
 
-from src.ui.toast_api import toast
+from my_project.ui.toast_api import toast
 
 class SaveDialog(QDialog):
 

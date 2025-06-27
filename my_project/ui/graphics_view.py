@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget, QGraphicsView
 from PyQt6.QtCore import Qt, QPointF, QPoint, pyqtSignal
 from PyQt6.QtGui import QPainter
 from enum import Enum
-from src.ui.toast_api import toast
+from my_project.ui.toast_api import toast
 
 class InteractionMode(Enum):
     NONE = 0
@@ -15,6 +15,7 @@ class InteractionMode(Enum):
 class CustomGraphicsView(QGraphicsView):
     clicked_in_sam_mode = pyqtSignal(QPointF)  # Signal with the scene coords
     send_measurement_points = pyqtSignal(QPointF, QPointF) #Signal with the two points for measurement
+    request_exit_measure_mode = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -87,6 +88,7 @@ class CustomGraphicsView(QGraphicsView):
                 self.setCursor(Qt.CursorShape.ArrowCursor)
                 self.start_point = None
                 event.accept()
+                self.request_exit_measure_mode.emit()
                 return
 
             return

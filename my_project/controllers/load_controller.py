@@ -1,4 +1,4 @@
-from src.ui.toast_api import toast
+from my_project.ui.toast_api import toast
 
 class LoadController:
     def __init__(self, main_window, data_manager, viewer_widget, metadata_viewer):
@@ -49,8 +49,8 @@ class LoadController:
     def open_dicom_file(self):
         from PyQt6.QtWidgets import QFileDialog
         import os
-        from src.image_data_handling.dicom_loader_thread import start_dicom_loader
-        from src.image_data_handling.dicom_reader import DicomReader
+        from my_project.data.dicom.dicom_loader_thread import start_dicom_loader
+        from my_project.data.dicom.dicom_reader import DicomReader
 
         file_path, _ = QFileDialog.getOpenFileName(None, "Open DICOM File", "", "DICOM Files (*.dcm);;All Files (*)")
         if file_path:
@@ -68,8 +68,8 @@ class LoadController:
 
     def open_nifti_file(self):
         from PyQt6.QtWidgets import QFileDialog
-        from src.image_data_handling.NIfTI_loader_thread import start_nifti_loader
-        from src.image_data_handling.NIfTI_reader import NIfTIReader
+        from my_project.data.nifti.NIfTI_loader_thread import start_nifti_loader
+        from my_project.data.nifti.NIfTI_reader import NIfTIReader
 
         file_path, _ = QFileDialog.getOpenFileName(None, "Open NIfTI File", "", "NIfTI Files (*.nii);;All Files (*)")
         if file_path:

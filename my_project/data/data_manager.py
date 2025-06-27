@@ -1,11 +1,12 @@
 import numpy as np
+from sympy.physics.units import volume
 
-from my_project.image_data_handling.exporters.dicom_exporter import export_dicom_series
-from my_project.image_data_handling.exporters.nifti_exporter import export_nifti
-from my_project.image_data_handling.exporters.video_exporter import export_as_mp4
-from my_project.image_data_handling.exporters.image_exporter import export_slice_image
+from my_project.exporters.dicom_exporter import export_dicom_series
+from my_project.exporters.nifti_exporter import export_nifti
+from my_project.exporters.video_exporter import export_as_mp4
+from my_project.exporters.image_exporter import export_slice_image
 from my_project.ui.toast_api import toast
-from my_project.image_data_handling.exporters.export_helpers import create_synthetic_dicom_headers, build_affine_from_dicom
+from my_project.exporters.export_helpers import create_synthetic_dicom_headers, build_affine_from_dicom
 
 
 class VolumeDataManager:
@@ -39,7 +40,7 @@ class VolumeDataManager:
         Shape must match volume_data (e.g. [N, H, W])
         """
         if masks.shape != self._volume_data.shape:
-            raise ValueError("Mask shape does not match volumew data shape")
+            raise ValueError("Mask shape does not match volume data shape")
         self._mask_data = masks
 
 
@@ -140,10 +141,14 @@ class VolumeDataManager:
     def save_as_nifti(self, file_path):
         try:
             if self.current_data_type == "dicom":
+                #Apply rescale to all slices before saving
+                volume = np.stack([self.apply_rescale_internal(i) for i in range(self.volume_data.shape[0])], axis=0)
                 affine = build_affine_from_dicom(self)
-            else: affine = self.nifti_affine_matrix
+            else:
+                volume = self.volume_data
+                affine = self.nifti_affine_matrix
 
-            export_nifti(self.volume_data, affine, file_path)
+            export_nifti(volume, affine, file_path)
             toast(f"NIfTI saved to {file_path}")
         except Exception as e:
             toast(f"Error saving NIfTI: {e}")
