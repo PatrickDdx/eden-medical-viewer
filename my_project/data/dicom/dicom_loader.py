@@ -1,5 +1,4 @@
 from PyQt6.QtCore import QObject, pyqtSignal
-import os
 
 class DicomLoader(QObject):
     finished = pyqtSignal(object, int, int, dict, list) # Signal for success

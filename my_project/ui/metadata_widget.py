@@ -1,4 +1,3 @@
-# ui/metadata_viewer.py
 from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, QVBoxLayout, QHeaderView, QSizePolicy, QScrollArea
 from PyQt6.QtCore import QSize
 

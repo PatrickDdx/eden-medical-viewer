@@ -1,5 +1,4 @@
 import numpy as np
-from sympy.physics.units import volume
 
 from my_project.exporters.dicom_exporter import export_dicom_series
 from my_project.exporters.nifti_exporter import export_nifti

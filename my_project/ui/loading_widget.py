@@ -1,8 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QLabel
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy, QApplication, QStackedLayout, QFileDialog, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem
-from PyQt6.QtCore import Qt, QTimer, QStandardPaths, QDir
-from PyQt6.QtGui import QPixmap, QImage, QMovie, QPainter
-import os
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QMovie
 
 class LoadingWidget(QWidget):
     def __init__(self, gif_path= None, parent=None):

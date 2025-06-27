@@ -1,4 +1,3 @@
-# toast.py
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QApplication
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, pyqtProperty
 from PyQt6.QtGui import QColor, QFont
