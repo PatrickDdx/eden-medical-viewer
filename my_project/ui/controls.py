@@ -76,7 +76,7 @@ class DicomControls(QWidget):
         grid_layout.addWidget(self.slider, 1, 0, 1, 2)  # Span two columns
 
         # Window Center Slider
-        grid_layout.addWidget(QLabel("Center:"), 2, 0, Qt.AlignmentFlag.AlignLeft)
+        grid_layout.addWidget(QLabel("Level:"), 2, 0, Qt.AlignmentFlag.AlignLeft)
         grid_layout.addWidget(self.center_value_label, 2, 1, Qt.AlignmentFlag.AlignRight)
         grid_layout.addWidget(self.center_slider, 3, 0, 1, 2)
 
