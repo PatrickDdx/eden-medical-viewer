@@ -60,10 +60,10 @@ my_project/
 │   │   ├── dicom_loader_thread.py
 │   │   └── dicom_reader.py
 │   ├── nifti/
-│   │   ├── NIfTI_loader.py            # Sync NIfTI loader
+│   │   ├── NIfTI_loader.py            # Async NIfTI loader
 │   │   ├── NIfTI_loader_thread.py
 │   │   └── NIfTI_reader.py
-│   └── data_manager.py                # Stores loaded image/mask data
+│   └── data_manager.py                # Stores loaded image data
 │
 ├── exporters/
 │   ├── dicom_exporter.py              # Export to DICOM
@@ -102,7 +102,7 @@ my_project/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/eden-medical-viewer.git
+   git clone https://github.com/PatrickDdx/eden-medical-viewer.git
    cd eden-medical-viewer
    ```
 

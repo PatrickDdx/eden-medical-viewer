@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
 
         self.viewer_widget = ViewerWidget(data_manager = self.data_manager, windowing_manager=self.windowing_manager)
 
-        self.floating_controls_window = FloatingControlsWindow(self.viewer_widget, self.windowing_manager)
+        self.floating_controls_window = FloatingControlsWindow(self.viewer_widget, self.windowing_manager, parent=self)
 
         self.viewer_widget.set_slider(self.floating_controls_window.controls.slider,
                                       center_slider=self.floating_controls_window.controls.center_slider,

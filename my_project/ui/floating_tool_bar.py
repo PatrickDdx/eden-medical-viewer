@@ -6,7 +6,7 @@ class FloatingControlsWindow(QWidget):
     def __init__(self, viewer_widget, windowing_manager, parent=None):
         super().__init__(parent)
         # Set window flags for a frameless window that stays on top
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground) # If you want to use rgba colors
         self.offset = QPoint() # To store mouse press offset for dragging
 
