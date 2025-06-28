@@ -1,3 +1,5 @@
+![Eden Logo](eden_icon.ico)
+
 # Eden – Medical Image Viewer
 
 **Eden** is a PyQt6-based medical image viewer designed for intuitive interaction with DICOM, NIfTI, and standard image formats. It offers essential image navigation tools alongside advanced capabilities like cine loop playback and measurement tools.
