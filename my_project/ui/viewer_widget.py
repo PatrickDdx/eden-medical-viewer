@@ -7,6 +7,7 @@ from PyQt6.QtGui import QPixmap, QImage, QPainter
 
 import numpy as np
 import os
+import sys
 from my_project.controllers.cine_loop_controller import CineController
 from my_project.ui.graphics_view import CustomGraphicsView, InteractionMode
 from my_project.data.data_manager import VolumeDataManager
@@ -14,6 +15,11 @@ from my_project.ui.loading_widget import LoadingWidget
 from my_project.ui.toast_api import toast
 #from my_project.AI.SAM.sam_handler import SAMHandler
 from my_project.image_processing.measurement_handler import MeasurementHandler
+
+def resource_path(relative_path):
+    """ Get the absolute path to a resource file, works for dev and PyInstaller .exe """
+    base_path = getattr(sys, '_MEIPASS', os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)))
+    return os.path.join(base_path, relative_path)
 
 class ViewerWidget(QWidget):
     request_start_measure_mode = pyqtSignal()
@@ -42,9 +48,10 @@ class ViewerWidget(QWidget):
 
         # Calculate the base directory relative to where this script (loading_widget.py) is
         # Go up one directory (from 'ui' to 'dicomViewer')
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+        #base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
         # Construct the full path to the GIF using os.path.join
-        gif_path = os.path.join(base_dir, "assets", "animations", "Ripple@1x-1.0s-200px-200px.gif")
+        #gif_path = os.path.join(base_dir, "assets", "animations", "Ripple@1x-1.0s-200px-200px.gif")
+        gif_path = resource_path("assets/animations/Ripple@1x-1.0s-200px-200px.gif")
         self.loading_widget = LoadingWidget(gif_path)
 
         # --- Main Layout using QStackedLayout ---
