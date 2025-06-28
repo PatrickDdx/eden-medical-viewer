@@ -1,6 +1,6 @@
 # Eden – Medical Image Viewer
 
-**Eden** is a feature-rich, PyQt6-based medical image viewer designed for intuitive interaction with DICOM, NIfTI, and standard image formats. It offers essential image navigation tools alongside advanced capabilities like cine loop playback and measurement tools, making it suitable for both clinical and research environments.
+**Eden** is a PyQt6-based medical image viewer designed for intuitive interaction with DICOM, NIfTI, and standard image formats. It offers essential image navigation tools alongside advanced capabilities like cine loop playback and measurement tools.
 
 ---
 
@@ -135,9 +135,9 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 You can add screenshots by placing images in the repository (e.g., in a `docs/` or `assets/` folder), and referencing them like this:
 
 ```markdown
-![Viewer Interface](assets/screenshots/Screenshot_1.png)
-![Measurement Tool](assets/screenshots/Screenshot_3.png)
-![Save Dialog](assets/screenshots/Screenshot_2.png)
+![Viewer Interface](assets/screenshots/Screenshot_1.png?raw=true)
+![Measurement Tool](assets/screenshots/Screenshot_3.png?raw=true)
+![Save Dialog](assets/screenshots/Screenshot_2.png?raw=true)
 ```
 
 ---
