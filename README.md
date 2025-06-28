@@ -135,9 +135,9 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 You can add screenshots by placing images in the repository (e.g., in a `docs/` or `assets/` folder), and referencing them like this:
 
 ```markdown
-![Viewer Interface](assets/screenshots/Screenshot_1.png?raw=true)
-![Measurement Tool](assets/screenshots/Screenshot_3.png?raw=true)
-![Save Dialog](assets/screenshots/Screenshot_2.png?raw=true)
+![Viewer Interface](assets/screenshots/Screenshot_1.png)
+![Measurement Tool](assets/screenshots/Screenshot_3.png)
+![Save Dialog](assets/screenshots/Screenshot_2.png)
 ```
 
 ---
