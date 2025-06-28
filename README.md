@@ -119,7 +119,8 @@ my_project/
 
 4. Run the application:
    ```bash
-   python main.py
+   python my_project/main.py
+
    ```
 
 ---
@@ -139,6 +140,15 @@ You can add screenshots by placing images in the repository (e.g., in a `docs/` 
 ![Measurement Tool](https://raw.githubusercontent.com/PatrickDdx/eden-medical-viewer/main/assets/screenshots/Screenshot_3.png)
 ![Save Dialog](https://raw.githubusercontent.com/PatrickDdx/eden-medical-viewer/main/assets/screenshots/Screenshot_2.png)
 ```
+
+---
+## 💻 Download
+
+Download the Windows version:
+
+👉 [Download Eden Viewer (.exe)](https://github.com/YourUsername/eden-medical-viewer/releases/latest/download/EdenViewer.exe)
+
+Note: You may get a Windows SmartScreen warning since the app isn’t signed. Click “More info” > “Run anyway” to proceed.
 
 ---
 
