@@ -146,7 +146,7 @@ You can add screenshots by placing images in the repository (e.g., in a `docs/` 
 
 **Windows users** can download the standalone `.exe` here:
 
-👉 [Download EdenViewer.exe](https://github.com/PatrickDdx/eden-medical-viewer/releases/latest/download/EdenViewer.exe)
+👉 [View the latest release](https://github.com/PatrickDdx/eden-medical-viewer/releases/latest)
 
 ---
 
