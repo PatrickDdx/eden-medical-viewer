@@ -1,3 +1,68 @@
 my_project/AI
 my_project/AI/SAM/sam_vit_h_4b8939.pth
 my_project/AI/SAM/sam_vit_b_01ec64.pth
+
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# PyQt / UI specific
+*.qmlc
+*.qrc
+*.pyc
+*.pyo
+
+# PyInstaller
+*.spec
+dist/
+build/
+*.egg-info/
+
+# VSCode and PyCharm IDE files
+.vscode/
+.idea/
+*.iml
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environment and secrets (if any)
+.env
+.env.*
+
+# Application logs or local files
+*.log
+logs/
+*.tmp
+
+# Exported media (optional)
+*.mp4
+*.png
+*.jpg
+*.bmp
+
+# Screenshots or docs (ignore only if not in assets/)
+docs/
+screenshots/
