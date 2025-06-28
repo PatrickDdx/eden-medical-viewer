@@ -144,11 +144,9 @@ You can add screenshots by placing images in the repository (e.g., in a `docs/` 
 ---
 ## 💻 Download
 
-Download the Windows version:
+**Windows users** can download the standalone `.exe` here:
 
-👉 [Download Eden Viewer (.exe)](https://github.com/PatrickDdx/eden-medical-viewer/releases/latest/download/EdenViewer.exe)
-
-Note: You may get a Windows SmartScreen warning since the app isn’t signed. Click “More info” > “Run anyway” to proceed.
+👉 [Download EdenViewer.exe](https://github.com/PatrickDdx/eden-medical-viewer/releases/latest/download/EdenViewer.exe)
 
 ---
 
