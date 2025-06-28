@@ -135,9 +135,10 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 You can add screenshots by placing images in the repository (e.g., in a `docs/` or `assets/` folder), and referencing them like this:
 
 ```markdown
-![Viewer Interface](assets/screenshots/Screenshot_1.png)
-![Measurement Tool](assets/screenshots/Screenshot_3.png)
-![Save Dialog](assets/screenshots/Screenshot_2.png)
+![Viewer Interface](https://github.com/PatrickDdx/Eden-medical-viewer/blob/main/assets/screenshots/Screenshot_1.png)
+![Measurement Tool](https://github.com/PatrickDdx/Eden-medical-viewer/blob/main/assets/screenshots/Screenshot_1.png)
+![Save Dialog](https://github.com/PatrickDdx/Eden-medical-viewer/blob/main/assets/screenshots/Screenshot_1.png)
+
 ```
 
 ---
