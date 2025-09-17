@@ -166,3 +166,5 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## 💬 Contact
 
 Feel free to reach out via GitHub Issues for bugs or feature requests.
+
+📫 Connect with me on [LinkedIn](https://www.linkedin.com/in/patrick-linke-905b16372)
